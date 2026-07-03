@@ -68,7 +68,12 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
           <div style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#aaa", marginBottom: "12px" }}>
             {events.length} events · {posCount} ▲ · {negCount} ▼ · by community
           </div>
-          <ShareButtons title={t.title} id={id} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+              <ShareButtons title={t.title} id={id} />
+              <div style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#aaa", whiteSpace: "nowrap" }}>
+                {t.views?.toLocaleString()} views
+              </div>
+            </div>
         </div>
 
         {/* Timeline */}
