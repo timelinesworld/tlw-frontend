@@ -27,6 +27,8 @@ export default function AdminPage() {
   const [jsonInput, setJsonInput] = useState('');
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState('');
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [bulkResults, setBulkResults] = useState<string[]>([]);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -338,7 +340,7 @@ export default function AdminPage() {
             })()}
 
             {/* Import Button */}
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '24px' }}>
               <button
                 onClick={handleJsonImport}
                 disabled={importing || !jsonInput.trim()}
@@ -353,6 +355,106 @@ export default function AdminPage() {
                 >
                   Clear
                 </button>
+              )}
+            </div>
+
+            {/* Bulk Import Section */}
+            <div style={{ borderTop: '1px solid #DEDAD3', paddingTop: '20px' }}>
+              <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '14px', fontWeight: 700, color: '#1C1C1E', marginBottom: '6px' }}>Bulk Import</div>
+              <p style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: '#888', marginBottom: '12px' }}>Select multiple JSON files at once — each file must contain one timeline. All will be imported automatically.</p>
+
+              <input
+                type="file"
+                accept=".json"
+                multiple
+                onChange={async e => {
+                  const files = Array.from(e.target.files || []);
+                  if (files.length === 0) return;
+
+                  setBulkImporting(true);
+                  setBulkResults([]);
+
+                  const results: string[] = [];
+
+                  for (const file of files) {
+                    try {
+                      const content = await file.text();
+                      const parsed = JSON.parse(content);
+
+                      // Get category
+                      const { data: catData } = await supabase
+                        .from('categories')
+                        .select('id')
+                        .eq('name', parsed.category)
+                        .single();
+
+                      if (!catData) {
+                        results.push(`❌ ${file.name} — Category not found: ${parsed.category}`);
+                        continue;
+                      }
+
+                      // Insert timeline
+                      const { data: tlData, error: tlError } = await supabase
+                        .from('timelines')
+                        .insert([{
+                          title: parsed.title,
+                          description: parsed.description,
+                          category_id: catData.id,
+                          views: 0
+                        }])
+                        .select()
+                        .single();
+
+                      if (tlError) {
+                        results.push(`❌ ${file.name} — Error: ${tlError.message}`);
+                        continue;
+                      }
+
+                      // Insert events
+                      const events = parsed.events.map((ev: any) => ({
+                        timeline_id: tlData.id,
+                        year: ev.year,
+                        title: ev.title,
+                        description: ev.description,
+                        side: ev.side,
+                      }));
+
+                      const { error: evError } = await supabase
+                        .from('events')
+                        .insert(events);
+
+                      if (evError) {
+                        results.push(`❌ ${file.name} — Events error: ${evError.message}`);
+                      } else {
+                        results.push(`✅ ${parsed.title} — ${events.length} events imported`);
+                      }
+
+                    } catch (err) {
+                      results.push(`❌ ${file.name} — Invalid JSON format`);
+                    }
+                  }
+
+                  setBulkResults(results);
+                  setBulkImporting(false);
+                  loadTimelines();
+                  e.target.value = '';
+                }}
+                style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: '#555', marginBottom: '12px' }}
+              />
+
+              {bulkImporting && (
+                <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: '#2A5298', marginBottom: '10px' }}>⏳ Importing... please wait</div>
+              )}
+
+              {bulkResults.length > 0 && (
+                <div style={{ background: '#F5F4F0', border: '1px solid #DEDAD3', borderRadius: '6px', padding: '12px', maxHeight: '200px', overflowY: 'auto' }}>
+                  <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', marginBottom: '8px' }}>
+                    Import Results — {bulkResults.filter(r => r.startsWith('✅')).length} succeeded · {bulkResults.filter(r => r.startsWith('❌')).length} failed
+                  </div>
+                  {bulkResults.map((r, i) => (
+                    <div key={i} style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: r.startsWith('✅') ? '#1A7A4A' : '#B83232', marginBottom: '4px' }}>{r}</div>
+                  ))}
+                </div>
               )}
             </div>
 
