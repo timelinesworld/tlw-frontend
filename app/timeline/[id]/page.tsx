@@ -11,6 +11,10 @@ async function getTimeline(id: number) {
   return data;
 }
 
+async function incrementViews(id: number) {
+  await supabase.rpc('increment_views', { timeline_id: id });
+}
+
 async function getEvents(id: number) {
   const { data, error } = await supabase
     .from('events')
@@ -34,6 +38,9 @@ async function getRelated(id: number) {
 export default async function TimelinePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const t = await getTimeline(Number(id));
+
+  // Increment view count silently
+  incrementViews(Number(id));
   if (!t) return <div style={{ padding: "40px", fontFamily: "Arial,sans-serif" }}>Timeline not found.</div>;
 
   const events = await getEvents(Number(id));
