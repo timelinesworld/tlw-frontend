@@ -244,6 +244,7 @@ export default function AdminPage() {
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                   <a href={'/timeline/' + t.id} style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '5px 12px', borderRadius: '4px', border: '1px solid #DEDAD3', color: '#555', textDecoration: 'none' }}>View</a>
+                  <a href={'/admin/edit/' + t.id} style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '5px 12px', borderRadius: '4px', border: '1px solid #2A5298', color: '#2A5298', textDecoration: 'none' }}>Edit</a>
                   <button onClick={() => handleDeleteTimeline(t.id)} style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '5px 12px', borderRadius: '4px', border: '1px solid #F0D4D4', color: '#B83232', background: '#FDF0F0', cursor: 'pointer' }}>Delete</button>
                 </div>
               </div>
