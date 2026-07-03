@@ -1,4 +1,5 @@
 import Navbar from "../../components/Navbar";
+import ShareButtons from "../../components/ShareButtons";
 import { supabase } from "../../lib/supabase";
 
 async function getTimeline(id: number) {
@@ -67,11 +68,7 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
           <div style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#aaa", marginBottom: "12px" }}>
             {events.length} events · {posCount} ▲ · {negCount} ▼ · by community
           </div>
-          <div style={{ display: "flex", gap: "8px" }}>
-            {["Share", "WhatsApp", "Copy link"].map(btn => (
-              <button key={btn} style={{ fontFamily: "Arial,sans-serif", fontSize: "10px", fontWeight: 600, padding: "5px 12px", borderRadius: "4px", border: "1px solid #DEDAD3", background: "#fff", color: "#555", cursor: "pointer" }}>{btn}</button>
-            ))}
-          </div>
+          <ShareButtons title={t.title} id={id} />
         </div>
 
         {/* Timeline */}
