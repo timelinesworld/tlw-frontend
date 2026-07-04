@@ -19,6 +19,14 @@ export default function AdminPage() {
   const [adminCheck, setAdminCheck] = useState<boolean | null>(null);
   const [timelines, setTimelines] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'timelines' | 'create' | 'import'>('timelines');
+  const [stats, setStats] = useState({
+    totalTimelines: 0,
+    totalEvents: 0,
+    totalViews: 0,
+    totalUsers: 0,
+    mostViewed: null as any,
+    recentlyAdded: null as any,
+  });
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -63,6 +71,37 @@ export default function AdminPage() {
       .select('*, categories(name)')
       .order('created_at', { ascending: false });
     setTimelines(data || []);
+    loadStats(data || []);
+  };
+
+  const loadStats = async (tlData: any[]) => {
+    // Total events
+    const { count: eventCount } = await supabase
+      .from('events')
+      .select('*', { count: 'exact', head: true });
+
+    // Total users
+    const { count: userCount } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true });
+
+    // Total views
+    const totalViews = tlData.reduce((sum, t) => sum + (t.views || 0), 0);
+
+    // Most viewed
+    const mostViewed = tlData.reduce((max, t) => (!max || t.views > max.views) ? t : max, null);
+
+    // Recently added
+    const recentlyAdded = tlData.length > 0 ? tlData[0] : null;
+
+    setStats({
+      totalTimelines: tlData.length,
+      totalEvents: eventCount || 0,
+      totalViews,
+      totalUsers: userCount || 0,
+      mostViewed,
+      recentlyAdded,
+    });
   };
 
   const handleCreateTimeline = async () => {
@@ -223,8 +262,54 @@ export default function AdminPage() {
       <div style={{ padding: '24px 20px 40px', maxWidth: '900px', margin: '0 auto' }}>
 
         <div style={{ marginBottom: '20px' }}>
-          <h1 style={{ fontFamily: 'Georgia,serif', fontSize: '22px', fontWeight: 700, color: '#1C1C1E', marginBottom: '4px' }}>Admin Panel</h1>
-          <p style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: '#888' }}>{timelines.length} timelines in database</p>
+          <h1 style={{ fontFamily: 'Georgia,serif', fontSize: '22px', fontWeight: 700, color: '#1C1C1E', marginBottom: '16px' }}>Admin Panel</h1>
+
+          {/* Stats Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+
+            <div style={{ background: '#fff', border: '1px solid #DEDAD3', borderRadius: '8px', padding: '14px 16px' }}>
+              <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>Timelines</div>
+              <div style={{ fontFamily: 'Georgia,serif', fontSize: '28px', fontWeight: 700, color: '#1C1C1E' }}>{stats.totalTimelines}</div>
+            </div>
+
+            <div style={{ background: '#fff', border: '1px solid #DEDAD3', borderRadius: '8px', padding: '14px 16px' }}>
+              <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>Events</div>
+              <div style={{ fontFamily: 'Georgia,serif', fontSize: '28px', fontWeight: 700, color: '#1C1C1E' }}>{stats.totalEvents}</div>
+            </div>
+
+            <div style={{ background: '#fff', border: '1px solid #DEDAD3', borderRadius: '8px', padding: '14px 16px' }}>
+              <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>Total Views</div>
+              <div style={{ fontFamily: 'Georgia,serif', fontSize: '28px', fontWeight: 700, color: '#1C1C1E' }}>{stats.totalViews.toLocaleString()}</div>
+            </div>
+
+            <div style={{ background: '#fff', border: '1px solid #DEDAD3', borderRadius: '8px', padding: '14px 16px' }}>
+              <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>Users</div>
+              <div style={{ fontFamily: 'Georgia,serif', fontSize: '28px', fontWeight: 700, color: '#1C1C1E' }}>{stats.totalUsers}</div>
+            </div>
+
+          </div>
+
+          {/* Most Viewed + Recently Added */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
+
+            {stats.mostViewed && (
+              <div style={{ background: '#EDF7F1', border: '1px solid #C8E8D5', borderRadius: '8px', padding: '12px 16px' }}>
+                <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 700, color: '#1A7A4A', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Most Viewed</div>
+                <div style={{ fontFamily: 'Georgia,serif', fontSize: '14px', fontWeight: 700, color: '#1C1C1E', marginBottom: '2px' }}>{stats.mostViewed.title}</div>
+                <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', color: '#1A7A4A' }}>{stats.mostViewed.views?.toLocaleString()} views</div>
+              </div>
+            )}
+
+            {stats.recentlyAdded && (
+              <div style={{ background: '#F5F4F0', border: '1px solid #DEDAD3', borderRadius: '8px', padding: '12px 16px' }}>
+                <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Recently Added</div>
+                <div style={{ fontFamily: 'Georgia,serif', fontSize: '14px', fontWeight: 700, color: '#1C1C1E', marginBottom: '2px' }}>{stats.recentlyAdded.title}</div>
+                <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', color: '#888' }}>{stats.recentlyAdded.categories?.name}</div>
+              </div>
+            )}
+
+          </div>
+
         </div>
 
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
