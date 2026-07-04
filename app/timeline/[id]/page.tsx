@@ -91,7 +91,15 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
                 {ev.side === "negative" && (
                   <div style={{ background: "#FDF0F0", border: "1px solid #F0D4D4", borderRadius: "10px", padding: "14px 16px", textAlign: "right", maxWidth: "240px" }}>
                     <span style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", display: "block", marginBottom: "5px" }}>{ev.title}</span>
-                    <span style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5, display: "block" }}>{ev.description}</span>
+                    {ev.details && ev.details.length > 0 ? (
+                      <div>
+                        {ev.details.map((d: string, i: number) => (
+                          <span key={i} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.6, display: "block" }}>{d}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5, display: "block" }}>{ev.description}</span>
+                    )}
                   </div>
                 )}
                 {ev.side === "negative" && <div style={{ height: "1px", background: "#F0D4D4", width: "20px", flexShrink: 0 }} />}
@@ -114,7 +122,15 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
                 {ev.side === "positive" && (
                   <div style={{ background: "#EDF7F1", border: "1px solid #C8E8D5", borderRadius: "10px", padding: "14px 16px", textAlign: "left", maxWidth: "240px" }}>
                     <span style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", display: "block", marginBottom: "5px" }}>{ev.title}</span>
-                    <span style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5, display: "block" }}>{ev.description}</span>
+                    {ev.details && ev.details.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                        {ev.details.map((d: string, i: number) => (
+                          <div key={i} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5 }}>{d}</div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5, display: "block" }}>{ev.description}</span>
+                    )}
                   </div>
                 )}
               </div>

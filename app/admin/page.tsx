@@ -145,6 +145,7 @@ export default function AdminPage() {
         title: ev.title,
         description: ev.description,
         side: ev.side,
+        details: ev.details || null,
       }));
 
       const { error: evError } = await supabase.from('events').insert(events);
@@ -417,6 +418,7 @@ export default function AdminPage() {
                         title: ev.title,
                         description: ev.description,
                         side: ev.side,
+                        details: ev.details || null,
                       }));
 
                       const { error: evError } = await supabase

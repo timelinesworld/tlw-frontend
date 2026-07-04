@@ -31,6 +31,7 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
   const [newDesc, setNewDesc] = useState('');
   const [newSide, setNewSide] = useState<'positive' | 'negative'>('positive');
   const [addingEvent, setAddingEvent] = useState(false);
+  const [eventDetails, setEventDetails] = useState<Record<number, string>>({});
 
   useEffect(() => {
     params.then(p => {
@@ -142,8 +143,13 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
     loadTimeline(id);
   };
 
-  const handleUpdateEvent = async (eventId: number, field: string, value: string) => {
-    await supabase.from('events').update({ [field]: value }).eq('id', eventId);
+  const handleUpdateEvent = async (eventId: number, field: string, value: any) => {
+    if (field === 'details') {
+      const parsed = value ? JSON.parse(value) : null;
+      await supabase.from('events').update({ details: parsed }).eq('id', eventId);
+    } else {
+      await supabase.from('events').update({ [field]: value }).eq('id', eventId);
+    }
     loadTimeline(id);
   };
 
@@ -267,8 +273,49 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
                 onBlur={e => handleUpdateEvent(ev.id, 'description', e.target.value)}
                 placeholder="Event description"
                 rows={2}
-                style={{ width: '100%', fontFamily: 'Arial,sans-serif', fontSize: '12px', padding: '6px 8px', border: '1px solid #DEDAD3', borderRadius: '4px', background: '#fff', resize: 'vertical', outline: 'none' }}
+                style={{ width: '100%', fontFamily: 'Arial,sans-serif', fontSize: '12px', padding: '6px 8px', border: '1px solid #DEDAD3', borderRadius: '4px', background: '#fff', resize: 'vertical', outline: 'none', marginBottom: '6px' }}
               />
+
+              {/* Details — optional structured lines */}
+              <div style={{ marginTop: '4px' }}>
+                <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '10px', fontWeight: 700, color: '#888', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Details (optional — one line per entry)
+                </div>
+                <textarea
+                  value={eventDetails[ev.id] !== undefined ? eventDetails[ev.id] : (ev.details ? ev.details.join('\n') : '')}
+                  onChange={e => setEventDetails(prev => ({ ...prev, [ev.id]: e.target.value }))}
+                  placeholder={"Host Country: Uruguay\nParticipating Countries: 13\nFinal: Uruguay vs Argentina\nDate: 30 Jul 1930"}
+                  rows={3}
+                  style={{ width: '100%', fontFamily: 'Arial,sans-serif', fontSize: '11px', padding: '6px 8px', border: '1px solid #C8E8D5', borderRadius: '4px', background: '#F9FEF9', resize: 'vertical', outline: 'none', marginBottom: '4px' }}
+                />
+                <button
+                  onClick={async () => {
+                    const raw = eventDetails[ev.id] !== undefined ? eventDetails[ev.id] : (ev.details ? ev.details.join('\n') : '');
+                    const lines = raw
+                      .split('\n')
+                      .map((l: string) => l.trim())
+                      .filter((l: string) => l.length > 0);
+
+                    const { error } = await supabase
+                      .from('events')
+                      .update({ details: lines.length > 0 ? lines : null })
+                      .eq('id', ev.id);
+
+                    if (error) {
+                      setMessage('❌ Error: ' + error.message);
+                    } else {
+                      setMessage('✅ Details saved!');
+                      loadTimeline(id);
+                    }
+                  }}
+                  style={{ fontFamily: 'Arial,sans-serif', fontSize: '10px', fontWeight: 600, padding: '4px 12px', borderRadius: '4px', border: '1px solid #C8E8D5', background: '#EDF7F1', color: '#1A7A4A', cursor: 'pointer' }}
+                >
+                  Save Details
+                </button>
+                <span style={{ fontFamily: 'Arial,sans-serif', fontSize: '10px', color: '#aaa', marginLeft: '8px' }}>
+                  If filled — replaces description on timeline.
+                </span>
+              </div>
             </div>
           ))}
         </div>
