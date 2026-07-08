@@ -21,10 +21,17 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
   const [oldestFirst, setOldestFirst] = useState(false);
 
   useEffect(() => {
-    params.then(p => {
-      setId(p.id);
-      loadAll(p.id);
-    });
+    const init = async () => {
+      try {
+        const p = await params;
+        console.log('Params resolved:', p);
+        setId(p.id);
+        loadAll(p.id);
+      } catch (err) {
+        console.error('Params error:', err);
+      }
+    };
+    init();
   }, []);
 
   const loadAll = async (timelineId: string) => {
@@ -45,9 +52,12 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
     // Load timeline
     const { data: tl } = await supabase
       .from('timelines')
-      .select('*, categories(name)')
+      .select('*, categories!timelines_category_id_fkey(name), secondary_category:categories!timelines_secondary_category_id_fkey(name)')
       .eq('id', timelineId)
       .single();
+    
+    
+    
     setT(tl);
 
     // Load events
@@ -58,15 +68,44 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
       .order('year', { ascending: true });
     setEvents(ev || []);
 
-    // Load related — same category
+    // Related timelines — match primary OR secondary category first
     if (tl) {
-      const { data: rel } = await supabase
+      const { data: samePrimary } = await supabase
         .from('timelines')
-        .select('*, categories(name)')
+        .select('*, categories!timelines_category_id_fkey(name), secondary_category:categories!timelines_secondary_category_id_fkey(name)')
         .eq('category_id', tl.category_id)
         .neq('id', timelineId)
         .limit(3);
-      setRelated(rel || []);
+
+      const existingIds = (samePrimary || []).map((t: any) => t.id);
+      existingIds.push(Number(timelineId));
+
+      let relatedList = [...(samePrimary || [])];
+
+      if (relatedList.length < 3 && tl.secondary_category_id) {
+        const { data: secMatch } = await supabase
+          .from('timelines')
+          .select('*, categories!timelines_category_id_fkey(name), secondary_category:categories!timelines_secondary_category_id_fkey(name)')
+          .eq('category_id', tl.secondary_category_id)
+          .not('id', 'in', `(${existingIds.join(',')})`)
+          .limit(3 - relatedList.length);
+
+        relatedList = [...relatedList, ...(secMatch || [])];
+        existingIds.push(...(secMatch || []).map((t: any) => t.id));
+      }
+
+      if (relatedList.length < 3) {
+        const { data: others } = await supabase
+          .from('timelines')
+          .select('*, categories!timelines_category_id_fkey(name), secondary_category:categories!timelines_secondary_category_id_fkey(name)')
+          .not('id', 'in', `(${existingIds.join(',')})`)
+          .order('views', { ascending: false })
+          .limit(3 - relatedList.length);
+
+        relatedList = [...relatedList, ...(others || [])];
+      }
+
+      setRelated(relatedList);
     }
 
     // Increment views
@@ -120,7 +159,15 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
           <div style={{ position: "absolute", top: "16px", right: "16px" }}>
             <FavouriteHeart timelineId={Number(id)} />
           </div>
-          <div style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298", marginBottom: "6px" }}>{t.categories?.name}</div>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "6px" }}>
+            <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298" }}>{t.categories?.name}</span>
+            {t.secondary_category?.name && (
+              <>
+                <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", color: "#2A5298", opacity: 0.4 }}>|</span>
+                <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298" }}>{t['secondary_category']?.name}</span>
+              </>
+            )}
+          </div>
           <h1 style={{ fontFamily: "Georgia,serif", fontSize: "22px", fontWeight: 700, color: "#1C1C1E", marginBottom: "6px", lineHeight: 1.2, paddingRight: "32px" }}>{t.title}</h1>
           <p style={{ fontFamily: "Arial,sans-serif", fontSize: "12px", color: "#555", lineHeight: 1.6, marginBottom: "10px" }}>{t.description}</p>
           <div style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#aaa", marginBottom: "12px" }}>

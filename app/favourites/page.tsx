@@ -48,7 +48,7 @@ export default function FavouritesPage() {
 
     const { data: tls } = await supabase
       .from('timelines')
-      .select('*, categories(name)')
+      .select('*, categories!timelines_category_id_fkey(name)')
       .in('id', ids);
 
     const { data: evs } = await supabase

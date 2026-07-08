@@ -30,6 +30,7 @@ export default function AdminPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
+  const [secondaryCategory, setSecondaryCategory] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [jsonInput, setJsonInput] = useState('');
@@ -68,7 +69,7 @@ export default function AdminPage() {
   const loadTimelines = async () => {
     const { data } = await supabase
       .from('timelines')
-      .select('*, categories(name)')
+      .select('*, categories!timelines_category_id_fkey(name)')
       .order('created_at', { ascending: false });
     setTimelines(data || []);
     loadStats(data || []);
@@ -120,9 +121,19 @@ export default function AdminPage() {
 
     if (!catData) { setMessage('Category not found.'); setSaving(false); return; }
 
+    let secondaryCatId = null;
+    if (secondaryCategory) {
+      const { data: secCatData } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('name', secondaryCategory)
+        .single();
+      secondaryCatId = secCatData?.id || null;
+    }
+
     const { error } = await supabase
       .from('timelines')
-      .insert([{ title, description, category_id: catData.id, views: 0 }]);
+      .insert([{ title, description, category_id: catData.id, secondary_category_id: secondaryCatId, views: 0 }]);
 
     if (error) {
       setMessage('Error: ' + error.message);
@@ -131,6 +142,7 @@ export default function AdminPage() {
       setTitle('');
       setDescription('');
       setCategory('');
+      setSecondaryCategory('');
       loadTimelines();
     }
     setSaving(false);
@@ -161,12 +173,23 @@ export default function AdminPage() {
         return;
       }
 
+      let secCatId = null;
+      if (parsed.secondary_category) {
+        const { data: secCat } = await supabase
+          .from('categories')
+          .select('id')
+          .eq('name', parsed.secondary_category)
+          .single();
+        secCatId = secCat?.id || null;
+      }
+
       const { data: tlData, error: tlError } = await supabase
         .from('timelines')
         .insert([{
           title: parsed.title,
           description: parsed.description,
           category_id: catData.id,
+          secondary_category_id: secCatId,
           views: 0
         }])
         .select()
@@ -304,7 +327,7 @@ export default function AdminPage() {
               <div style={{ background: '#F5F4F0', border: '1px solid #DEDAD3', borderRadius: '8px', padding: '12px 16px' }}>
                 <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>Recently Added</div>
                 <div style={{ fontFamily: 'Georgia,serif', fontSize: '14px', fontWeight: 700, color: '#1C1C1E', marginBottom: '2px' }}>{stats.recentlyAdded.title}</div>
-                <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', color: '#888' }}>{stats.recentlyAdded.categories?.name}</div>
+                <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', color: '#888' }}>{stats.recentlyAdded['categories!timelines_category_id_fkey']?.name}</div>
               </div>
             )}
 
@@ -326,7 +349,7 @@ export default function AdminPage() {
             {timelines.map((t: any) => (
               <div key={t.id} style={{ background: '#fff', border: '1px solid #DEDAD3', borderRadius: '6px', padding: '14px 16px', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 700, color: '#2A5298', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '3px' }}>{t.categories?.name}</div>
+                  <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 700, color: '#2A5298', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '3px' }}>{t['categories!timelines_category_id_fkey']?.name}</div>
                   <div style={{ fontFamily: 'Georgia,serif', fontSize: '14px', fontWeight: 700, color: '#1C1C1E', marginBottom: '3px' }}>{t.title}</div>
                   <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', color: '#888' }}>{t.description}</div>
                 </div>
@@ -347,10 +370,16 @@ export default function AdminPage() {
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Mahatma Gandhi" style={inputStyle} />
             <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', display: 'block', marginBottom: '5px' }}>Description</label>
             <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="One sentence description…" rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
-            <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', display: 'block', marginBottom: '5px' }}>Category</label>
+            <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', display: 'block', marginBottom: '5px' }}>Primary Category</label>
             <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
-              <option value="">Select category…</option>
+              <option value="">Select primary category…</option>
               {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+
+            <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', display: 'block', marginBottom: '5px' }}>Secondary Category (optional)</label>
+            <select value={secondaryCategory} onChange={e => setSecondaryCategory(e.target.value)} style={inputStyle}>
+              <option value="">None</option>
+              {categories.filter(c => c !== category).map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             {message && (
               <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: message.startsWith('✅') ? '#1A7A4A' : '#B83232', marginBottom: '12px' }}>{message}</div>

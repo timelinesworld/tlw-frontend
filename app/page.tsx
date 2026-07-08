@@ -24,7 +24,7 @@ export default function Home() {
   const loadData = async () => {
     const { data: tl } = await supabase
       .from('timelines')
-      .select('*, categories(name)')
+      .select('*, categories!timelines_category_id_fkey(name)')
       .order('views', { ascending: false });
 
     const { data: ev } = await supabase

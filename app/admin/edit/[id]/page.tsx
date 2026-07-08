@@ -21,6 +21,7 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
+  const [secondaryCategory, setSecondaryCategory] = useState('');
   const [events, setEvents] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -63,7 +64,7 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
     // Load timeline
     const { data: tl } = await supabase
       .from('timelines')
-      .select('*, categories(name)')
+      .select('*, categories!timelines_category_id_fkey(name)')
       .eq('id', timelineId)
       .single();
 
@@ -71,6 +72,16 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
       setTitle(tl.title);
       setDescription(tl.description);
       setCategory(tl.categories?.name || '');
+
+      // Load secondary category name
+      if (tl.secondary_category_id) {
+        const { data: secCat } = await supabase
+          .from('categories')
+          .select('name')
+          .eq('id', tl.secondary_category_id)
+          .single();
+        setSecondaryCategory(secCat?.name || '');
+      }
     }
 
     // Load events
@@ -95,9 +106,20 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
 
     if (!catData) { setMessage('Category not found.'); setSaving(false); return; }
 
+    // Get secondary category id if selected
+    let secondaryCatId = null;
+    if (secondaryCategory) {
+      const { data: secCatData } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('name', secondaryCategory)
+        .single();
+      secondaryCatId = secCatData?.id || null;
+    }
+
     const { error } = await supabase
       .from('timelines')
-      .update({ title, description, category_id: catData.id })
+      .update({ title, description, category_id: catData.id, secondary_category_id: secondaryCatId })
       .eq('id', id);
 
     if (error) {
@@ -207,11 +229,17 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
           <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', display: 'block', marginBottom: '5px' }}>Description</label>
           <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
 
-          <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', display: 'block', marginBottom: '5px' }}>Category</label>
-          <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
-            <option value="">Select category…</option>
-            {categories.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', display: 'block', marginBottom: '5px' }}>Primary Category</label>
+            <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+              <option value="">Select primary category…</option>
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+
+            <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', display: 'block', marginBottom: '5px' }}>Secondary Category (optional)</label>
+            <select value={secondaryCategory} onChange={e => setSecondaryCategory(e.target.value)} style={inputStyle}>
+              <option value="">None</option>
+              {categories.filter(c => c !== category).map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
 
           {message && (
             <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: message.startsWith('✅') ? '#1A7A4A' : '#B83232', marginBottom: '12px' }}>{message}</div>
