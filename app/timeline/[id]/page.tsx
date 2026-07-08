@@ -1,5 +1,6 @@
 import Navbar from "../../components/Navbar";
 import ShareButtons from "../../components/ShareButtons";
+import FavouriteHeart from "../../components/FavouriteHeart";
 import { supabase } from "../../lib/supabase";
 
 async function getTimeline(id: number) {
@@ -61,7 +62,10 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
         <a href="/browse" style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#2A5298", textDecoration: "none", padding: "14px 0 10px", display: "block" }}>← All timelines</a>
 
         {/* Header Card */}
-        <div style={{ background: "#fff", border: "1px solid #DEDAD3", borderRadius: "8px", padding: "18px 20px", marginBottom: "24px" }}>
+        <div style={{ background: "#fff", border: "1px solid #DEDAD3", borderRadius: "8px", padding: "18px 20px", marginBottom: "24px", position: "relative" }}>
+          <div style={{ position: "absolute", top: "16px", right: "16px" }}>
+            <FavouriteHeart timelineId={Number(id)} />
+          </div>
           <div style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298", marginBottom: "6px" }}>{t.categories?.name}</div>
           <h1 style={{ fontFamily: "Georgia,serif", fontSize: "22px", fontWeight: 700, color: "#1C1C1E", marginBottom: "6px", lineHeight: 1.2 }}>{t.title}</h1>
           <p style={{ fontFamily: "Arial,sans-serif", fontSize: "12px", color: "#555", lineHeight: 1.6, marginBottom: "10px" }}>{t.description}</p>
@@ -69,11 +73,11 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
             {events.length} events · {posCount} ▲ · {negCount} ▼ · by community
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
-              <ShareButtons title={t.title} id={id} />
-              <div style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#aaa", whiteSpace: "nowrap" }}>
-                {t.views?.toLocaleString()} views
-              </div>
+            <ShareButtons title={t.title} id={id} />
+            <div style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#aaa", whiteSpace: "nowrap" }}>
+              {t.views?.toLocaleString()} views
             </div>
+          </div>
         </div>
 
         {/* Timeline */}
