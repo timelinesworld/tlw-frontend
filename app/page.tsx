@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import Navbar from './components/Navbar';
 import TimelineCard from './components/TimelineCard';
+import SearchAutocomplete from './components/SearchAutocomplete';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -114,15 +115,14 @@ export default function Home() {
         <h1 style={{ fontFamily: 'Georgia,serif', fontSize: '22px', fontWeight: 700, color: '#1C1C1E', marginBottom: '8px' }}>Every story has a timeline.</h1>
         <p style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: '#555', marginBottom: '16px' }}>Browse timelines for people, places, events, inventions, disasters and more.</p>
 
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '6px', maxWidth: '400px', margin: '0 auto 14px' }}>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search any person, place, event…"
-            style={{ flex: 1, fontFamily: 'Arial,sans-serif', fontSize: '12px', padding: '8px 12px', border: '1px solid #DEDAD3', borderRadius: '4px', background: '#F5F4F0', color: '#1C1C1E', outline: 'none' }}
+        <div style={{ maxWidth: '400px', margin: '0 auto 14px' }}>
+          <SearchAutocomplete
+            onSearch={q => {
+              if (q.trim()) window.location.href = '/browse?q=' + encodeURIComponent(q.trim());
+              else window.location.href = '/browse';
+            }}
           />
-          <button type="submit" style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '8px 16px', borderRadius: '4px', background: '#2A5298', color: '#fff', border: 'none', cursor: 'pointer' }}>Search</button>
-        </form>
+        </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', justifyContent: 'center' }}>
           {categories.map((cat, i) => (

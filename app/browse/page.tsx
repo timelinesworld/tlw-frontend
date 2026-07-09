@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import Navbar from '../components/Navbar';
+import SearchAutocomplete from '../components/SearchAutocomplete';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -131,17 +132,16 @@ export default function Browse() {
         </div>
 
         {/* Search */}
-        <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            onKeyDown={handleKeyDown}
+        <div style={{ marginBottom: "14px", display: "flex", gap: "8px", alignItems: "center" }}>
+          <SearchAutocomplete
+            onSearch={q => {
+              setSearch(q);
+              applyFilters(q, activeCategory, sortBy);
+            }}
             placeholder="Search any person, place, event, year…"
-            style={{ flex: 1, fontFamily: "Arial,sans-serif", fontSize: "13px", padding: "9px 14px", border: "1px solid #DEDAD3", borderRadius: "4px", background: "#fff", color: "#1C1C1E", outline: "none" }}
           />
-          <button onClick={handleSearch} style={{ fontFamily: "Arial,sans-serif", fontSize: "12px", fontWeight: 600, padding: "9px 18px", borderRadius: "4px", background: "#2A5298", color: "#fff", border: "none", cursor: "pointer" }}>Search</button>
           {search && (
-            <button onClick={handleClear} style={{ fontFamily: "Arial,sans-serif", fontSize: "12px", fontWeight: 600, padding: "9px 14px", borderRadius: "4px", background: "#fff", color: "#555", border: "1px solid #DEDAD3", cursor: "pointer" }}>Clear</button>
+            <button onClick={handleClear} style={{ fontFamily: "Arial,sans-serif", fontSize: "12px", fontWeight: 600, padding: "9px 14px", borderRadius: "4px", background: "#fff", color: "#555", border: "1px solid #DEDAD3", cursor: "pointer", whiteSpace: "nowrap" }}>Clear</button>
           )}
         </div>
 
