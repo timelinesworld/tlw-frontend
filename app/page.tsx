@@ -24,7 +24,7 @@ export default function Home() {
   const loadData = async () => {
     const { data: tl } = await supabase
       .from('timelines')
-      .select('*, categories!timelines_category_id_fkey(name)')
+      .select('*, categories!timelines_category_id_fkey(name), secondary_category:categories!timelines_secondary_category_id_fkey(name)')
       .order('views', { ascending: false });
 
     const { data: ev } = await supabase
@@ -104,7 +104,15 @@ export default function Home() {
             {featured.map((t: any) => (
               <a key={t.id} href={"/timeline/" + t.id} style={{ textDecoration: "none" }}>
                 <div style={{ background: "#fff", border: "1px solid #DEDAD3", borderRadius: "6px", padding: "12px 14px", cursor: "pointer" }}>
-                  <div style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298", marginBottom: "4px" }}>{t.categories?.name}</div>
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px" }}>
+                    <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298" }}>{t.categories?.name}</span>
+                    {t.secondary_category?.name && (
+                      <>
+                        <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", color: "#2A5298", opacity: 0.4 }}>|</span>
+                        <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298" }}>{t.secondary_category?.name}</span>
+                      </>
+                    )}
+                  </div>
                   <h3 style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", marginBottom: "4px", lineHeight: 1.3 }}>{t.title}</h3>
                   <p style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5, marginBottom: "8px" }}>{t.description}</p>
                   <div style={{ display: "flex", gap: "5px", marginBottom: "6px" }}>
@@ -129,7 +137,15 @@ export default function Home() {
           {trending.map((t: any) => (
             <a key={t.id} href={"/timeline/" + t.id} style={{ textDecoration: "none" }}>
               <div style={{ background: "#fff", border: "1px solid #DEDAD3", borderRadius: "6px", padding: "12px 14px", cursor: "pointer" }}>
-                <div style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298", marginBottom: "4px" }}>{t.categories?.name}</div>
+                <div style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px" }}>
+                    <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298" }}>{t.categories?.name}</span>
+                    {t.secondary_category?.name && (
+                      <>
+                        <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", color: "#2A5298", opacity: 0.4 }}>|</span>
+                        <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298" }}>{t.secondary_category?.name}</span>
+                      </>
+                    )}
+                  </div>
                 <h3 style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", marginBottom: "4px" }}>{t.title}</h3>
                 <p style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5, marginBottom: "8px" }}>{t.description}</p>
                 <div style={{ display: "flex", gap: "5px", marginBottom: "6px" }}>

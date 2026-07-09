@@ -48,7 +48,7 @@ export default function FavouritesPage() {
 
     const { data: tls } = await supabase
       .from('timelines')
-      .select('*, categories!timelines_category_id_fkey(name)')
+      .select('*, categories!timelines_category_id_fkey(name), secondary_category:categories!timelines_secondary_category_id_fkey(name)')
       .in('id', ids);
 
     const { data: evs } = await supabase
@@ -142,8 +142,14 @@ export default function FavouritesPage() {
                 </div>
 
                 <a href={"/timeline/" + t.id} style={{ textDecoration: "none" }}>
-                  <div style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298", marginBottom: "4px", paddingRight: "24px" }}>
-                    {t.categories?.name}
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px", paddingRight: "24px", flexWrap: "wrap" }}>
+                    <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298" }}>{t.categories?.name}</span>
+                    {t.secondary_category?.name && (
+                      <>
+                        <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", color: "#2A5298", opacity: 0.4 }}>|</span>
+                        <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298" }}>{t.secondary_category?.name}</span>
+                      </>
+                    )}
                   </div>
                   <h3 style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", marginBottom: "4px", paddingRight: "24px" }}>
                     {t.title}
