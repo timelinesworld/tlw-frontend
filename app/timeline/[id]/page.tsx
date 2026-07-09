@@ -254,7 +254,34 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
               {/* LEFT HALF */}
               <div style={{ width: "50%", display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: "12px" }}>
                 {ev.side === "negative" && (
-                  <div style={{ background: "#FDF0F0", border: "1px solid #F0D4D4", borderRadius: "10px", padding: "14px 16px", textAlign: "right", maxWidth: "240px" }}>
+                  <div
+                    className="event-card"
+                    style={{ background: "#FDF0F0", border: "1px solid #F0D4D4", borderRadius: "10px", padding: "14px 16px", textAlign: "right", maxWidth: "240px", position: "relative", cursor: "default" }}
+                    onMouseEnter={e => {
+                      const btn = e.currentTarget.querySelector('.copy-btn') as HTMLElement;
+                      if (btn) btn.style.opacity = '1';
+                    }}
+                    onMouseLeave={e => {
+                      const btn = e.currentTarget.querySelector('.copy-btn') as HTMLElement;
+                      if (btn) btn.style.opacity = '0';
+                    }}
+                  >
+                    <button
+                      className="copy-btn"
+                      onClick={() => {
+                        const text = `${ev.year}${ev.title ? ' — ' + ev.title : ''}\n${ev.details ? ev.details.join('\n') : ev.description}`;
+                        navigator.clipboard.writeText(text);
+                        const btn = document.activeElement as HTMLElement;
+                        if (btn) btn.textContent = '✓';
+                        setTimeout(() => { if (btn) btn.textContent = '📋'; }, 2000);
+                      }}
+                      title="Copy"
+                      style={{ position: "absolute", top: "8px", left: "8px", background: "none", border: "none", cursor: "pointer", opacity: 0, transition: "opacity 0.2s", padding: "2px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B83232" strokeWidth="1.5" strokeOpacity="0.6">
+                        <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                      </svg>
+                    </button>
                     <span style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", display: "block", marginBottom: "5px" }}>{ev.title}</span>
                     {ev.details && ev.details.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
@@ -285,7 +312,33 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
               <div style={{ width: "50%", display: "flex", alignItems: "center", justifyContent: "flex-start", paddingLeft: "12px" }}>
                 {ev.side === "positive" && <div style={{ height: "1px", background: "#C8E8D5", width: "20px", flexShrink: 0 }} />}
                 {ev.side === "positive" && (
-                  <div style={{ background: "#EDF7F1", border: "1px solid #C8E8D5", borderRadius: "10px", padding: "14px 16px", textAlign: "left", maxWidth: "240px" }}>
+                  <div
+                    style={{ background: "#EDF7F1", border: "1px solid #C8E8D5", borderRadius: "10px", padding: "14px 16px", textAlign: "left", maxWidth: "240px", position: "relative", cursor: "default" }}
+                    onMouseEnter={e => {
+                      const btn = e.currentTarget.querySelector('.copy-btn') as HTMLElement;
+                      if (btn) btn.style.opacity = '1';
+                    }}
+                    onMouseLeave={e => {
+                      const btn = e.currentTarget.querySelector('.copy-btn') as HTMLElement;
+                      if (btn) btn.style.opacity = '0';
+                    }}
+                  >
+                    <button
+                      className="copy-btn"
+                      onClick={() => {
+                        const text = `${ev.year}${ev.title ? ' — ' + ev.title : ''}\n${ev.details ? ev.details.join('\n') : ev.description}`;
+                        navigator.clipboard.writeText(text);
+                        const btn = document.activeElement as HTMLElement;
+                        if (btn) btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>';
+                        setTimeout(() => { if (btn) btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'; }, 2000);
+                      }}
+                      title="Copy"
+                      style={{ position: "absolute", top: "8px", right: "8px", background: "none", border: "none", cursor: "pointer", opacity: 0, transition: "opacity 0.2s", padding: "2px", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A7A4A" strokeWidth="1.5" strokeOpacity="0.6">
+                        <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                      </svg>
+                    </button>
                     <span style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", display: "block", marginBottom: "5px" }}>{ev.title}</span>
                     {ev.details && ev.details.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
