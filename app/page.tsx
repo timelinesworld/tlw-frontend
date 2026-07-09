@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import Navbar from "./components/Navbar";
+import Navbar from './components/Navbar';
+import TimelineCard from './components/TimelineCard';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,7 +13,10 @@ const supabase = createClient(
 const categories = ["All", "Person", "Country", "Disaster", "Invention", "Sports", "Movement", "Politics & Leadership", "Other"];
 
 export default function Home() {
-  const [timelines, setTimelines] = useState<any[]>([]);
+  const [featured, setFeatured] = useState<any[]>([]);
+  const [recentlyAdded, setRecentlyAdded] = useState<any[]>([]);
+  const [adminsPick, setAdminsPick] = useState<any[]>([]);
+  const [live, setLive] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -22,17 +26,45 @@ export default function Home() {
   }, []);
 
   const loadData = async () => {
-    const { data: tl } = await supabase
+    setLoading(true);
+
+    // Featured — top 8 by views
+    const { data: featuredData } = await supabase
       .from('timelines')
       .select('*, categories!timelines_category_id_fkey(name), secondary_category:categories!timelines_secondary_category_id_fkey(name)')
-      .order('views', { ascending: false });
+      .order('views', { ascending: false })
+      .limit(8);
 
-    const { data: ev } = await supabase
+    // Recently Added — latest 4
+    const { data: recentData } = await supabase
+      .from('timelines')
+      .select('*, categories!timelines_category_id_fkey(name), secondary_category:categories!timelines_secondary_category_id_fkey(name)')
+      .order('created_at', { ascending: false })
+      .limit(4);
+
+    // Admin's Pick
+    const { data: picksData } = await supabase
+      .from('timelines')
+      .select('*, categories!timelines_category_id_fkey(name), secondary_category:categories!timelines_secondary_category_id_fkey(name)')
+      .eq('is_admins_pick', true)
+      .limit(4);
+
+    // Live Timelines
+    const { data: liveData } = await supabase
+      .from('timelines')
+      .select('*, categories!timelines_category_id_fkey(name), secondary_category:categories!timelines_secondary_category_id_fkey(name)')
+      .eq('is_live', true);
+
+    // All events for counts
+    const { data: evData } = await supabase
       .from('events')
       .select('timeline_id, side');
 
-    setTimelines(tl || []);
-    setEvents(ev || []);
+    setFeatured(featuredData || []);
+    setRecentlyAdded(recentData || []);
+    setAdminsPick(picksData || []);
+    setLive(liveData || []);
+    setEvents(evData || []);
     setLoading(false);
   };
 
@@ -48,39 +80,56 @@ export default function Home() {
     }
   };
 
-  const featured = timelines.slice(0, 4);
-  const trending = timelines.slice(4, 6);
+  const sectionHead = (label: string, link: string) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+      <span style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</span>
+      <a href={link} style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 600, padding: '3px 12px', borderRadius: '20px', border: '1px solid #DEDAD3', background: '#fff', color: '#555', textDecoration: 'none' }}>Discover more →</a>
+    </div>
+  );
+
+  const grid8: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '8px',
+    marginBottom: '0',
+  };
+
+  const grid4: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '8px',
+  };
+
+  const divider = (
+    <div style={{ height: '1px', background: '#DEDAD3', margin: '20px 0 16px' }} />
+  );
 
   return (
     <main>
       <Navbar />
 
       {/* Hero */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #DEDAD3", padding: "36px 24px 28px", textAlign: "center" }}>
-        <p style={{ fontFamily: "Arial,sans-serif", fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#2A5298", marginBottom: "10px" }}>The chronology of everything</p>
-        <h1 style={{ fontFamily: "Georgia,serif", fontSize: "26px", fontWeight: 700, color: "#1C1C1E", letterSpacing: "-0.03em", lineHeight: 1.15, marginBottom: "10px" }}>Every story has a timeline.</h1>
-        <p style={{ fontFamily: "Arial,sans-serif", fontSize: "13px", color: "#555", lineHeight: 1.6, marginBottom: "20px", maxWidth: "420px", marginLeft: "auto", marginRight: "auto" }}>
-          Browse timelines for people, places, events, inventions, disasters and more. Simple. Free. Forever.
-        </p>
+      <div style={{ background: '#fff', borderBottom: '1px solid #DEDAD3', padding: '28px 20px 20px', textAlign: 'center' }}>
+        <p style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#2A5298', marginBottom: '8px' }}>The chronology of everything</p>
+        <h1 style={{ fontFamily: 'Georgia,serif', fontSize: '22px', fontWeight: 700, color: '#1C1C1E', marginBottom: '8px' }}>Every story has a timeline.</h1>
+        <p style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: '#555', marginBottom: '16px' }}>Browse timelines for people, places, events, inventions, disasters and more.</p>
 
-        {/* Search */}
-        <form onSubmit={handleSearch} style={{ display: "flex", gap: "8px", maxWidth: "460px", margin: "0 auto 20px" }}>
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '6px', maxWidth: '400px', margin: '0 auto 14px' }}>
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search any person, place, event…"
-            style={{ flex: 1, fontFamily: "Arial,sans-serif", fontSize: "13px", padding: "10px 14px", border: "1px solid #DEDAD3", borderRadius: "4px", background: "#F5F4F0", color: "#1C1C1E", outline: "none" }}
+            style={{ flex: 1, fontFamily: 'Arial,sans-serif', fontSize: '12px', padding: '8px 12px', border: '1px solid #DEDAD3', borderRadius: '4px', background: '#F5F4F0', color: '#1C1C1E', outline: 'none' }}
           />
-          <button type="submit" style={{ fontFamily: "Arial,sans-serif", fontSize: "12px", fontWeight: 600, padding: "10px 20px", borderRadius: "4px", background: "#2A5298", color: "#fff", border: "none", cursor: "pointer" }}>Search</button>
+          <button type="submit" style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '8px 16px', borderRadius: '4px', background: '#2A5298', color: '#fff', border: 'none', cursor: 'pointer' }}>Search</button>
         </form>
 
-        {/* Categories */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", justifyContent: "center" }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', justifyContent: 'center' }}>
           {categories.map((cat, i) => (
             <button
               key={cat}
               onClick={() => window.location.href = cat === 'All' ? '/browse' : '/browse?cat=' + encodeURIComponent(cat)}
-              style={{ fontFamily: "Arial,sans-serif", fontSize: "10px", fontWeight: 600, padding: "4px 12px", borderRadius: "20px", border: "1px solid #DEDAD3", background: i === 0 ? "#2A5298" : "#fff", color: i === 0 ? "#fff" : "#555", cursor: "pointer" }}
+              style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: '1px solid #DEDAD3', background: i === 0 ? '#2A5298' : '#fff', color: i === 0 ? '#fff' : '#555', cursor: 'pointer' }}
             >
               {cat}
             </button>
@@ -89,84 +138,62 @@ export default function Home() {
       </div>
 
       {/* Body */}
-      <div style={{ padding: "24px 20px 40px", maxWidth: "960px", margin: "0 auto" }}>
-
-        {/* Featured */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-          <span style={{ fontFamily: "Arial,sans-serif", fontSize: "10px", fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.1em" }}>Featured Timelines</span>
-          <a href="/browse" style={{ fontFamily: "Arial,sans-serif", fontSize: "10px", color: "#2A5298", textDecoration: "none" }}>See all →</a>
-        </div>
+      <div style={{ padding: '20px 16px 32px', maxWidth: '900px', margin: '0 auto' }}>
 
         {loading ? (
-          <div style={{ fontFamily: "Arial,sans-serif", fontSize: "13px", color: "#888", padding: "20px", textAlign: "center" }}>Loading...</div>
+          <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '13px', color: '#888', textAlign: 'center', padding: '40px' }}>Loading...</div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: "10px", marginBottom: "28px" }}>
-            {featured.map((t: any) => (
-              <a key={t.id} href={"/timeline/" + t.id} style={{ textDecoration: "none" }}>
-                <div style={{ background: "#fff", border: "1px solid #DEDAD3", borderRadius: "6px", padding: "12px 14px", cursor: "pointer" }}>
-                  <div style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px" }}>
-                    <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298" }}>{t.categories?.name}</span>
-                    {t.secondary_category?.name && (
-                      <>
-                        <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", color: "#2A5298", opacity: 0.4 }}>|</span>
-                        <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298" }}>{t.secondary_category?.name}</span>
-                      </>
-                    )}
-                  </div>
-                  <h3 style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", marginBottom: "4px", lineHeight: 1.3 }}>{t.title}</h3>
-                  <p style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5, marginBottom: "8px" }}>{t.description}</p>
-                  <div style={{ display: "flex", gap: "5px", marginBottom: "6px" }}>
-                    <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, padding: "2px 7px", borderRadius: "20px", background: "#EDF7F1", color: "#1A7A4A" }}>▲ {getPos(t.id)} events</span>
-                    <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, padding: "2px 7px", borderRadius: "20px", background: "#FDF0F0", color: "#B83232" }}>▼ {getNeg(t.id)} events</span>
-                  </div>
-                  <div style={{ fontFamily: "Arial,sans-serif", fontSize: "10px", color: "#aaa" }}>by community</div>
-                </div>
-              </a>
-            ))}
-          </div>
-        )}
-
-        <div style={{ height: "1px", background: "#DEDAD3", marginBottom: "24px" }} />
-
-        {/* Trending */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-          <span style={{ fontFamily: "Arial,sans-serif", fontSize: "10px", fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.1em" }}>Trending This Week</span>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: "10px" }}>
-          {trending.map((t: any) => (
-            <a key={t.id} href={"/timeline/" + t.id} style={{ textDecoration: "none" }}>
-              <div style={{ background: "#fff", border: "1px solid #DEDAD3", borderRadius: "6px", padding: "12px 14px", cursor: "pointer" }}>
-                <div style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px" }}>
-                    <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298" }}>{t.categories?.name}</span>
-                    {t.secondary_category?.name && (
-                      <>
-                        <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", color: "#2A5298", opacity: 0.4 }}>|</span>
-                        <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#2A5298" }}>{t.secondary_category?.name}</span>
-                      </>
-                    )}
-                  </div>
-                <h3 style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", marginBottom: "4px" }}>{t.title}</h3>
-                <p style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5, marginBottom: "8px" }}>{t.description}</p>
-                <div style={{ display: "flex", gap: "5px", marginBottom: "6px" }}>
-                  <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, padding: "2px 7px", borderRadius: "20px", background: "#EDF7F1", color: "#1A7A4A" }}>▲ {getPos(t.id)} events</span>
-                  <span style={{ fontFamily: "Arial,sans-serif", fontSize: "9px", fontWeight: 700, padding: "2px 7px", borderRadius: "20px", background: "#FDF0F0", color: "#B83232" }}>▼ {getNeg(t.id)} events</span>
-                </div>
-                <div style={{ fontFamily: "Arial,sans-serif", fontSize: "10px", color: "#aaa" }}>by community · {t.views?.toLocaleString()} views</div>
-              </div>
-            </a>
-          ))}
-          <div style={{ background: "#FAFAF8", border: "1px dashed #DEDAD3", borderRadius: "6px", padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", minHeight: "120px" }}>
-            <div>
-              <div style={{ fontFamily: "Arial,sans-serif", fontSize: "12px", color: "#aaa", marginBottom: "6px" }}>More timelines coming soon</div>
-              <div style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#bbb" }}>Login to create your own</div>
+          <>
+            {/* Section 1 — Featured Timelines */}
+            {sectionHead('Featured Timelines', '/browse')}
+            <div style={{ ...grid8, gridTemplateRows: 'repeat(2, 1fr)', marginBottom: '8px' }}>
+              {featured.map((t: any) => (
+                <TimelineCard key={t.id} t={t} posCount={getPos(t.id)} negCount={getNeg(t.id)} />
+              ))}
             </div>
-          </div>
-        </div>
+
+            {divider}
+
+            {/* Section 2 — Recently Added */}
+            {sectionHead('Recently Added', '/browse')}
+            <div style={grid4}>
+              {recentlyAdded.map((t: any) => (
+                <TimelineCard key={t.id} t={t} posCount={getPos(t.id)} negCount={getNeg(t.id)} />
+              ))}
+            </div>
+
+            {/* Section 3 — Admin's Pick */}
+            {adminsPick.length > 0 && (
+              <>
+                {divider}
+                {sectionHead("Admin's Pick", '/browse')}
+                <div style={grid4}>
+                  {adminsPick.map((t: any) => (
+                    <TimelineCard key={t.id} t={t} posCount={getPos(t.id)} negCount={getNeg(t.id)} />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Section 4 — Live Timelines */}
+            {live.length > 0 && (
+              <>
+                {divider}
+                {sectionHead('Live Timelines', '/browse')}
+                <div style={grid4}>
+                  {live.map((t: any) => (
+                    <TimelineCard key={t.id} t={t} posCount={getPos(t.id)} negCount={getNeg(t.id)} />
+                  ))}
+                </div>
+              </>
+            )}
+
+          </>
+        )}
 
       </div>
 
-      <footer style={{ background: "#fff", borderTop: "1px solid #DEDAD3", textAlign: "center", padding: "14px", fontFamily: "Arial,sans-serif", fontSize: "10px", color: "#bbb" }}>
+      <footer style={{ background: '#fff', borderTop: '1px solid #DEDAD3', textAlign: 'center', padding: '12px', fontFamily: 'Arial,sans-serif', fontSize: '9px', color: '#bbb', marginTop: '16px' }}>
         Timelines World · open knowledge · simple · free · forever
       </footer>
     </main>

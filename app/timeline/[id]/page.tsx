@@ -168,7 +168,14 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
               </>
             )}
           </div>
-          <h1 style={{ fontFamily: "Georgia,serif", fontSize: "22px", fontWeight: 700, color: "#1C1C1E", marginBottom: "6px", lineHeight: 1.2, paddingRight: "32px" }}>{t.title}</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", paddingRight: "32px" }}>
+            <h1 style={{ fontFamily: "Georgia,serif", fontSize: "22px", fontWeight: 700, color: "#1C1C1E", lineHeight: 1.2, margin: 0 }}>{t.title}</h1>
+            {t.is_admins_pick && (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="#F5A623" stroke="#F5A623" strokeWidth="1.5" style={{ flexShrink: 0 }}>
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            )}
+          </div>
           <p style={{ fontFamily: "Arial,sans-serif", fontSize: "12px", color: "#555", lineHeight: 1.6, marginBottom: "10px" }}>{t.description}</p>
           <div style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#aaa", marginBottom: "12px" }}>
             {events.length} events · {posCount} ▲ · {negCount} ▼ · by community

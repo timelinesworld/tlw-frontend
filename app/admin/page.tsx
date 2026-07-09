@@ -148,6 +148,13 @@ export default function AdminPage() {
     setSaving(false);
   };
 
+    const handleToggleFlag = async (id: number, field: string, currentValue: boolean) => {
+    await supabase
+      .from('timelines')
+      .update({ [field]: !currentValue })
+      .eq('id', id);
+    loadTimelines();
+  };
   const handleDeleteTimeline = async (id: number) => {
     if (!confirm('Are you sure you want to delete this timeline?')) return;
     await supabase.from('timelines').delete().eq('id', id);
@@ -353,7 +360,28 @@ export default function AdminPage() {
                   <div style={{ fontFamily: 'Georgia,serif', fontSize: '14px', fontWeight: 700, color: '#1C1C1E', marginBottom: '3px' }}>{t.title}</div>
                   <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', color: '#888' }}>{t.description}</div>
                 </div>
-                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                <div style={{ display: 'flex', gap: '8px', flexShrink: 0, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {/* Admin's Pick toggle */}
+                  <button
+                    onClick={() => handleToggleFlag(t.id, 'is_admins_pick', t.is_admins_pick)}
+                    title={t.is_admins_pick ? "Remove from Admin's Pick" : "Add to Admin's Pick"}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontSize: '16px' }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill={t.is_admins_pick ? '#F5A623' : 'none'} stroke={t.is_admins_pick ? '#F5A623' : '#ccc'} strokeWidth="2">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                  </button>
+
+                  {/* Live toggle */}
+                  <button
+                    onClick={() => handleToggleFlag(t.id, 'is_live', t.is_live)}
+                    title={t.is_live ? 'Mark as not Live' : 'Mark as Live'}
+                    style={{ fontFamily: 'Arial,sans-serif', fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '20px', border: `1px solid ${t.is_live ? '#FF2020' : '#DEDAD3'}`, color: t.is_live ? '#FF2020' : '#aaa', background: t.is_live ? '#FFF0F0' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.is_live ? '#FF2020' : '#ccc' }} />
+                    {t.is_live ? 'LIVE' : 'Live'}
+                  </button>
+
                   <a href={'/timeline/' + t.id} style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '5px 12px', borderRadius: '4px', border: '1px solid #DEDAD3', color: '#555', textDecoration: 'none' }}>View</a>
                   <a href={'/admin/edit/' + t.id} style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '5px 12px', borderRadius: '4px', border: '1px solid #2A5298', color: '#2A5298', textDecoration: 'none' }}>Edit</a>
                   <button onClick={() => handleDeleteTimeline(t.id)} style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '5px 12px', borderRadius: '4px', border: '1px solid #F0D4D4', color: '#B83232', background: '#FDF0F0', cursor: 'pointer' }}>Delete</button>
