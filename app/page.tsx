@@ -128,7 +128,7 @@ export default function Home() {
           {categories.map((cat, i) => (
             <button
               key={cat}
-              onClick={() => window.location.href = cat === 'All' ? '/browse' : '/browse?cat=' + encodeURIComponent(cat)}
+              onClick={() => window.location.href = cat === 'All' ? '/browse' : '/category/' + encodeURIComponent(cat)}
               style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: '1px solid #DEDAD3', background: i === 0 ? '#2A5298' : '#fff', color: i === 0 ? '#fff' : '#555', cursor: 'pointer' }}
             >
               {cat}

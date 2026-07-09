@@ -80,15 +80,11 @@ export default function TimelineCard({ t, posCount, negCount }: TimelineCardProp
           {/* Top row — category + icons */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '4px' }}>
             <div>
-              <span style={{ fontFamily: 'Arial,sans-serif', fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2A5298' }}>
-                {t.categories?.name}
-              </span>
+              <a href={'/category/' + encodeURIComponent(t.categories?.name)} onClick={e => e.stopPropagation()} style={{ fontFamily: 'Arial,sans-serif', fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2A5298', textDecoration: 'none' }}>{t.categories?.name}</a>
               {t.secondary_category?.name && (
                 <>
                   <span style={{ fontFamily: 'Arial,sans-serif', fontSize: '8px', color: '#2A5298', opacity: 0.4, margin: '0 4px' }}>|</span>
-                  <span style={{ fontFamily: 'Arial,sans-serif', fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2A5298' }}>
-                    {t.secondary_category?.name}
-                  </span>
+                  <a href={'/category/' + encodeURIComponent(t.secondary_category?.name)} onClick={e => e.stopPropagation()} style={{ fontFamily: 'Arial,sans-serif', fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2A5298', textDecoration: 'none' }}>{t.secondary_category?.name}</a>
                 </>
               )}
             </div>
