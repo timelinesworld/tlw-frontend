@@ -208,20 +208,13 @@ export default function AdminPage() {
         return;
       }
 
-      const parseYear = (year: string): number => {
-        const d = new Date(year);
-        if (!isNaN(d.getTime())) return d.getTime();
-        return 0;
-      };
-
-      const events = parsed.events.map((ev: any, index: number) => ({
+      const events = parsed.events.map((ev: any) => ({
         timeline_id: tlData.id,
         year: ev.year,
         title: ev.title,
         description: ev.description,
         side: ev.side,
         details: ev.details || null,
-        sort_order: parseYear(ev.year) || index + 1,
       }));
 
       const { error: evError } = await supabase.from('events').insert(events);
@@ -561,20 +554,13 @@ export default function AdminPage() {
                       }
 
                       // Insert events
-                      const parseYear = (year: string): number => {
-                        const d = new Date(year);
-                        if (!isNaN(d.getTime())) return d.getTime();
-                        return 0;
-                      };
-
-                      const events = parsed.events.map((ev: any, index: number) => ({
+                      const events = parsed.events.map((ev: any) => ({
                         timeline_id: tlData.id,
                         year: ev.year,
                         title: ev.title,
                         description: ev.description,
                         side: ev.side,
                         details: ev.details || null,
-                        sort_order: parseYear(ev.year) || index + 1,
                       }));
 
                       const { error: evError } = await supabase
