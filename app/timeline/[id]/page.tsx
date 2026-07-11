@@ -213,7 +213,15 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
             {events.length} events · {posCount} ▲ · {negCount} ▼ · by community
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
-            <ShareButtons title={t.title} id={id} />
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <ShareButtons title={t.title} id={id} />
+              {t.is_live && (
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#FF2020", flexShrink: 0 }} />
+                  <span style={{ fontFamily: "Arial,sans-serif", fontSize: "14px", fontWeight: 400, color: "#FF2020", letterSpacing: "0.05em" }}>LIVE</span>
+                </div>
+              )}
+            </div>
             <div style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#aaa", whiteSpace: "nowrap" }}>
               {t.views?.toLocaleString()} views
             </div>
