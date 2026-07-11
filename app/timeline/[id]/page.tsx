@@ -279,7 +279,7 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
                 {ev.side === "negative" && (
                   <div
                     className="event-card"
-                    style={{ background: "#FDF0F0", border: "1px solid #F0D4D4", borderRadius: "10px", padding: "14px 16px", textAlign: "right", maxWidth: "240px", position: "relative", cursor: "default" }}
+                    style={{ background: "#FDF0F0", border: "1px solid #F0D4D4", borderRadius: "10px", padding: "14px 16px", textAlign: "right", maxWidth: "260px", position: "relative", cursor: "default" }}
                     onMouseEnter={e => {
                       const btn = e.currentTarget.querySelector('.copy-btn') as HTMLElement;
                       if (btn) btn.style.opacity = '1';
@@ -336,7 +336,7 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
                 {ev.side === "positive" && <div style={{ height: "1px", background: "#C8E8D5", width: "20px", flexShrink: 0 }} />}
                 {ev.side === "positive" && (
                   <div
-                    style={{ background: "#EDF7F1", border: "1px solid #C8E8D5", borderRadius: "10px", padding: "14px 16px", textAlign: "left", maxWidth: "240px", position: "relative", cursor: "default" }}
+                    style={{ background: "#EDF7F1", border: "1px solid #C8E8D5", borderRadius: "10px", padding: "14px 16px", textAlign: "left", maxWidth: "260px", position: "relative", cursor: "default" }}
                     onMouseEnter={e => {
                       const btn = e.currentTarget.querySelector('.copy-btn') as HTMLElement;
                       if (btn) btn.style.opacity = '1';
