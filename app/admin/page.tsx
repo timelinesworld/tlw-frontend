@@ -190,6 +190,19 @@ export default function AdminPage() {
         secCatId = secCat?.id || null;
       }
 
+      // Priority 49 — Duplicate check
+      const { data: existing } = await supabase
+        .from('timelines')
+        .select('id')
+        .eq('title', parsed.title)
+        .maybeSingle();
+
+      if (existing) {
+        setImportMessage('❌ Timeline "' + parsed.title + '" already exists. Import cancelled.');
+        setImporting(false);
+        return;
+      }
+
       const { data: tlData, error: tlError } = await supabase
         .from('timelines')
         .insert([{
@@ -220,7 +233,9 @@ export default function AdminPage() {
       const { error: evError } = await supabase.from('events').insert(events);
 
       if (evError) {
-        setImportMessage('❌ Error adding events: ' + evError.message);
+        // Priority 50 — Atomic import — rollback timeline
+        await supabase.from('timelines').delete().eq('id', tlData.id);
+        setImportMessage('❌ Import failed — ' + evError.message + '. No changes saved.');
       } else {
         setImportMessage(`✅ Successfully imported "${parsed.title}" with ${events.length} events!`);
         setJsonInput('');
