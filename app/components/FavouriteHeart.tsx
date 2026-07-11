@@ -26,7 +26,7 @@ export default function FavouriteHeart({ timelineId }: { timelineId: number }) {
           .select('id')
           .eq('user_id', session.user.id)
           .eq('timeline_id', timelineId)
-          .single();
+          .maybeSingle();
 
         setIsFavourite(!!data);
       }

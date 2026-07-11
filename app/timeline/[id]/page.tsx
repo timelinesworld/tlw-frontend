@@ -22,17 +22,11 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
   const [oldestFirst, setOldestFirst] = useState(false);
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        const p = await params;
-        console.log('Params resolved:', p);
-        setId(p.id);
-        loadAll(p.id);
-      } catch (err) {
-        console.error('Params error:', err);
-      }
-    };
-    init();
+    const pathParts = window.location.pathname.split('/');
+    const timelineId = pathParts[pathParts.length - 1];
+    console.log('Timeline ID from URL:', timelineId);
+    setId(timelineId);
+    loadAll(timelineId);
   }, []);
 
   const loadAll = async (timelineId: string) => {
@@ -51,11 +45,32 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
     }
 
     // Load timeline
-    const { data: tl } = await supabase
+    const { data: tl, error: tlError } = await supabase
       .from('timelines')
-      .select('*, categories!timelines_category_id_fkey(name), secondary_category:categories!timelines_secondary_category_id_fkey(name)')
+      .select('*')
       .eq('id', timelineId)
       .single();
+
+    
+    // Load primary category
+    if (tl?.category_id) {
+      const { data: cat } = await supabase
+        .from('categories')
+        .select('name')
+        .eq('id', tl.category_id)
+        .single();
+      if (cat) tl.categories = cat;
+    }
+
+    // Load secondary category
+    if (tl?.secondary_category_id) {
+      const { data: secCat } = await supabase
+        .from('categories')
+        .select('name')
+        .eq('id', tl.secondary_category_id)
+        .single();
+      if (secCat) tl.secondary_category = secCat;
+    }
     
     
     
@@ -65,9 +80,16 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
     const { data: ev } = await supabase
       .from('events')
       .select('*')
-      .eq('timeline_id', timelineId)
-      .order('year', { ascending: true });
-    setEvents(ev || []);
+      .eq('timeline_id', timelineId);
+
+    const sorted = (ev || []).sort((a: any, b: any) => {
+      const dateA = new Date(a.year);
+      const dateB = new Date(b.year);
+      if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) return dateA.getTime() - dateB.getTime();
+      return 0;
+    });
+
+    setEvents(sorted);
 
     // Related timelines — match primary OR secondary category first
     if (tl) {
