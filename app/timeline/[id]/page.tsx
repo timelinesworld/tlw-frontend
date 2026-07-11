@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import Navbar from '../../components/Navbar';
 import ShareButtons from '../../components/ShareButtons';
 import FavouriteHeart from '../../components/FavouriteHeart';
-import { linkifyText } from '../../lib/linkify';
+import { linkifyText, parseBold } from '../../lib/linkify';
 import QuickAddEvent from '../../components/QuickAddEvent';
 
 const supabase = createClient(
@@ -318,7 +318,7 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
                     {ev.details && ev.details.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
                         {ev.details.map((d: string, di: number) => (
-                          <div key={di} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5 }}>{linkifyText(d, allTimelines)}</div>
+                          <div key={di} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5 }}>{parseBold(d)}</div>
                         ))}
                       </div>
                     ) : (
@@ -375,7 +375,7 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
                     {ev.details && ev.details.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
                         {ev.details.map((d: string, di: number) => (
-                          <div key={di} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5 }}>{linkifyText(d, allTimelines)}</div>
+                          <div key={di} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5 }}>{parseBold(d)}</div>
                         ))}
                       </div>
                     ) : (

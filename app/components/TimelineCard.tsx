@@ -63,7 +63,7 @@ export default function TimelineCard({ t, posCount, negCount }: TimelineCardProp
 
   return (
     <>
-      <a href={'/timeline/' + t.id} style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
+      <div onClick={() => window.location.href = '/timeline/' + t.id} style={{ textDecoration: 'none', display: 'block', height: '100%', cursor: 'pointer' }}>
         <div style={{
           background: '#fff',
           border: '1px solid #DEDAD3',
@@ -136,7 +136,7 @@ export default function TimelineCard({ t, posCount, negCount }: TimelineCardProp
           )}
 
         </div>
-      </a>
+      </div>
 
       {/* Guest popup */}
       {showPopup && (

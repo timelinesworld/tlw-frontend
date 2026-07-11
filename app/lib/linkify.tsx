@@ -1,5 +1,20 @@
 import React from 'react';
 
+// Parse **bold** markdown in text
+export const parseBold = (text: string): React.ReactNode => {
+  if (!text || !text.includes('**')) return text;
+  const parts = text.split(/\*\*(.*?)\*\*/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        i % 2 === 1
+          ? <strong key={i} style={{ fontWeight: 700 }}>{part}</strong>
+          : <span key={i}>{part}</span>
+      )}
+    </>
+  );
+};
+
 const STOPWORDS = new Set([
   'the', 'a', 'an', 'of', 'in', 'at', 'by', 'for',
   'to', 'is', 'was', 'and', 'or', 'on', 'with', 'from'
