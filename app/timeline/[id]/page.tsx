@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import Navbar from '../../components/Navbar';
 import ShareButtons from '../../components/ShareButtons';
 import FavouriteHeart from '../../components/FavouriteHeart';
+import { linkifyText } from '../../lib/linkify';
 import QuickAddEvent from '../../components/QuickAddEvent';
 
 const supabase = createClient(
@@ -17,6 +18,7 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
   const [t, setT] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [related, setRelated] = useState<any[]>([]);
+  const [allTimelines, setAllTimelines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [oldestFirst, setOldestFirst] = useState(false);
@@ -130,6 +132,13 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
 
       setRelated(relatedList);
     }
+
+    // Load all timeline titles for hyperlinking
+    const { data: allTl } = await supabase
+      .from('timelines')
+      .select('id, title')
+      .neq('id', timelineId);
+    setAllTimelines(allTl || []);
 
     // Increment views
     await supabase.rpc('increment_views', { timeline_id: Number(timelineId) });
@@ -309,11 +318,11 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
                     {ev.details && ev.details.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
                         {ev.details.map((d: string, di: number) => (
-                          <div key={di} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5 }}>{d}</div>
+                          <div key={di} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5 }}>{linkifyText(d, allTimelines)}</div>
                         ))}
                       </div>
                     ) : (
-                      <span style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5, display: "block" }}>{ev.description}</span>
+                      <span style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5, display: "block" }}>{linkifyText(ev.description, allTimelines)}</span>
                     )}
                   </div>
                 )}
@@ -366,11 +375,11 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
                     {ev.details && ev.details.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
                         {ev.details.map((d: string, di: number) => (
-                          <div key={di} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5 }}>{d}</div>
+                          <div key={di} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5 }}>{linkifyText(d, allTimelines)}</div>
                         ))}
                       </div>
                     ) : (
-                      <span style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5, display: "block" }}>{ev.description}</span>
+                      <span style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5, display: "block" }}>{linkifyText(ev.description, allTimelines)}</span>
                     )}
                   </div>
                 )}
