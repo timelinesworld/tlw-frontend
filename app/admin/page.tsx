@@ -36,6 +36,16 @@ export default function AdminPage() {
   const [jsonInput, setJsonInput] = useState('');
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState('');
+
+  // Update mode state
+  const [updateMode, setUpdateMode] = useState(false);
+  const [updateTimeline, setUpdateTimeline] = useState<any>(null);
+  const [updateEvents, setUpdateEvents] = useState<any[]>([]);
+  const [updatePreview, setUpdatePreview] = useState<any[]>([]);
+  const [updateSkipped, setUpdateSkipped] = useState(0);
+  const [updateConfirming, setUpdateConfirming] = useState(false);
+  const [existingTimelineFound, setExistingTimelineFound] = useState(false);
+  const [parsedJson, setParsedJson] = useState<any>(null);
   const [bulkImporting, setBulkImporting] = useState(false);
   const [bulkResults, setBulkResults] = useState<string[]>([]);
 
@@ -160,13 +170,92 @@ export default function AdminPage() {
     await supabase.from('timelines').delete().eq('id', id);
     loadTimelines();
   };
+const handleUpdateMode = async (parsed: any) => {
+    const { data: matchedTimeline } = await supabase
+      .from('timelines')
+      .select('*, categories!timelines_category_id_fkey(name)')
+      .ilike('title', parsed.timeline_title)
+      .maybeSingle();
 
+    setUpdateEvents(parsed.events || []);
+    setUpdateMode(true);
+
+    if (matchedTimeline) {
+      setUpdateTimeline(matchedTimeline);
+      await previewUpdateEvents(matchedTimeline.id, parsed.events || []);
+    } else {
+      setUpdateTimeline(null);
+      setImportMessage('⚠️ No timeline found matching "' + parsed.timeline_title + '". Please select from dropdown.');
+    }
+  };
+
+  const previewUpdateEvents = async (timelineId: number, events: any[]) => {
+    const newEvents: any[] = [];
+    let skipped = 0;
+
+    for (const ev of events) {
+      const { data: existing } = await supabase
+        .from('events')
+        .select('id')
+        .eq('timeline_id', timelineId)
+        .eq('year', ev.year)
+        .eq('title', ev.title || '')
+        .maybeSingle();
+
+      if (existing) {
+        skipped++;
+      } else {
+        newEvents.push(ev);
+      }
+    }
+
+    setUpdatePreview(newEvents);
+    setUpdateSkipped(skipped);
+  };
+
+  const handleUpdateTimeline = async () => {
+    if (!updateTimeline || updatePreview.length === 0) return;
+    setUpdateConfirming(true);
+
+    const events = updatePreview.map((ev: any) => ({
+      timeline_id: updateTimeline.id,
+      year: ev.year,
+      title: ev.title || null,
+      description: ev.description,
+      side: ev.side,
+      details: ev.details || null,
+    }));
+
+    const { error } = await supabase.from('events').insert(events);
+
+    if (error) {
+      setImportMessage('❌ Error adding events: ' + error.message);
+    } else {
+      setImportMessage(`✅ Successfully added ${updatePreview.length} new events to "${updateTimeline.title}"!`);
+      setUpdateMode(false);
+      setUpdatePreview([]);
+      setUpdateTimeline(null);
+      setJsonInput('');
+      loadTimelines();
+    }
+    setUpdateConfirming(false);
+  };
   const handleJsonImport = async () => {
     setImportMessage('');
     setImporting(true);
+    setUpdateMode(false);
+    setUpdatePreview([]);
+    setUpdateSkipped(0);
 
     try {
       const parsed = JSON.parse(jsonInput);
+
+      // Detect UPDATE mode — has timeline_title + events but no title/category
+      if (parsed.timeline_title && parsed.events && !parsed.title && !parsed.category) {
+        await handleUpdateMode(parsed);
+        setImporting(false);
+        return;
+      }
 
       const { data: catData } = await supabase
         .from('categories')
@@ -198,7 +287,7 @@ export default function AdminPage() {
         .maybeSingle();
 
       if (existing) {
-        setImportMessage('❌ Timeline "' + parsed.title + '" already exists. Import cancelled.');
+        setImportMessage('❌ Timeline "' + parsed.title + '" already exists. Use Check for Updates instead.');
         setImporting(false);
         return;
       }
@@ -445,14 +534,43 @@ export default function AdminPage() {
                 <input
                   type="file"
                   accept=".json"
-                  onChange={e => {
+                  onChange={async e => {
                     const file = e.target.files?.[0];
                     if (!file) return;
                     const reader = new FileReader();
-                    reader.onload = (ev) => {
+                    reader.onload = async (ev) => {
                       const content = ev.target?.result as string;
                       setJsonInput(content);
-                      setImportMessage('✅ File loaded — click Import Timeline to proceed.');
+                      setExistingTimelineFound(false);
+                      setParsedJson(null);
+                      setUpdateMode(false);
+                      setImportMessage('');
+
+                      try {
+                        const parsed = JSON.parse(content);
+                        setParsedJson(parsed);
+
+                        if (parsed.title) {
+                          // Check if timeline already exists
+                          const { data: existing } = await supabase
+                            .from('timelines')
+                            .select('id, title')
+                            .eq('title', parsed.title)
+                            .maybeSingle();
+
+                          if (existing) {
+                            setExistingTimelineFound(true);
+                            setImportMessage('⚠️ "' + parsed.title + '" already exists. Click "Check for Updates" to find new events.');
+                          } else {
+                            setImportMessage('✅ Ready to import: ' + parsed.title + ' · ' + (parsed.events?.length || 0) + ' events · Category: ' + parsed.category);
+                          }
+                        } else if (parsed.timeline_title) {
+                          setExistingTimelineFound(true);
+                          setImportMessage('⚠️ Update mode detected for "' + parsed.timeline_title + '". Click "Check for Updates".');
+                        }
+                      } catch {
+                        setImportMessage('❌ Invalid JSON file.');
+                      }
                     };
                     reader.readAsText(file);
                   }}
@@ -482,7 +600,71 @@ export default function AdminPage() {
 
             {/* Message */}
             {importMessage && (
-              <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: importMessage.startsWith('✅') ? '#1A7A4A' : '#B83232', marginBottom: '12px', padding: '10px', background: importMessage.startsWith('✅') ? '#EDF7F1' : '#FDF0F0', borderRadius: '4px' }}>{importMessage}</div>
+              <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: importMessage.startsWith('✅') ? '#1A7A4A' : importMessage.startsWith('⚠️') ? '#B87A00' : '#B83232', marginBottom: '12px', padding: '10px', background: importMessage.startsWith('✅') ? '#EDF7F1' : importMessage.startsWith('⚠️') ? '#FFFBE6' : '#FDF0F0', borderRadius: '4px' }}>{importMessage}</div>
+            )}
+
+            {/* Update Mode Preview */}
+            {updateMode && (
+              <div style={{ background: '#FFFBE6', border: '1px solid #FFD700', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', marginBottom: '6px' }}>Update timeline:</div>
+                  <select
+                    value={updateTimeline?.id || ''}
+                    onChange={async e => {
+                      const selected = timelines.find((t: any) => t.id === Number(e.target.value));
+                      setUpdateTimeline(selected || null);
+                      if (selected) await previewUpdateEvents(selected.id, updateEvents);
+                    }}
+                    style={{ width: '100%', fontFamily: 'Arial,sans-serif', fontSize: '12px', padding: '7px 10px', border: '1px solid #DEDAD3', borderRadius: '4px', background: '#fff', outline: 'none', marginBottom: '8px' }}
+                  >
+                    <option value="">Select timeline...</option>
+                    {timelines.map((t: any) => (
+                      <option key={t.id} value={t.id}>{t.title}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {updateTimeline && (
+                  <>
+                    <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', color: '#555', marginBottom: '8px' }}>
+                      <strong>{updatePreview.length} new events</strong> to add
+                      {updateSkipped > 0 && <span style={{ color: '#aaa' }}> · {updateSkipped} duplicate{updateSkipped > 1 ? 's' : ''} skipped</span>}
+                    </div>
+
+                    {updatePreview.length > 0 ? (
+                      <div style={{ marginBottom: '12px' }}>
+                        {updatePreview.map((ev: any, i: number) => (
+                          <div key={i} style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', color: '#555', padding: '4px 0', borderBottom: '1px solid #F0ECC0', display: 'flex', gap: '8px' }}>
+                            <span style={{ color: '#aaa', flexShrink: 0 }}>{ev.year}</span>
+                            <span>{ev.title || ev.description}</span>
+                            <span style={{ marginLeft: 'auto', color: ev.side === 'positive' ? '#1A7A4A' : '#B83232', flexShrink: 0 }}>{ev.side === 'positive' ? '▲' : '▼'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', color: '#aaa', marginBottom: '12px' }}>No new events to add — all events already exist.</div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => { setUpdateMode(false); setUpdatePreview([]); setUpdateTimeline(null); setImportMessage(''); }}
+                        style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '7px 16px', borderRadius: '4px', border: '1px solid #DEDAD3', background: '#fff', color: '#555', cursor: 'pointer' }}
+                      >
+                        Cancel
+                      </button>
+                      {updatePreview.length > 0 && (
+                        <button
+                          onClick={handleUpdateTimeline}
+                          disabled={updateConfirming}
+                          style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '7px 16px', borderRadius: '4px', border: 'none', background: updateConfirming ? '#aaa' : '#1A7A4A', color: '#fff', cursor: updateConfirming ? 'not-allowed' : 'pointer' }}
+                        >
+                          {updateConfirming ? 'Adding...' : `Add ${updatePreview.length} Events`}
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             )}
 
             {/* Preview — show title if JSON is loaded */}
@@ -500,11 +682,20 @@ export default function AdminPage() {
             {/* Import Button */}
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '24px' }}>
               <button
-                onClick={handleJsonImport}
+                onClick={async () => {
+                  if (existingTimelineFound && parsedJson) {
+                    await handleUpdateMode({
+                      timeline_title: parsedJson.title || parsedJson.timeline_title,
+                      events: parsedJson.events || [],
+                    });
+                  } else {
+                    handleJsonImport();
+                  }
+                }}
                 disabled={importing || !jsonInput.trim()}
-                style={{ fontFamily: 'Arial,sans-serif', fontSize: '13px', fontWeight: 600, padding: '10px 24px', borderRadius: '4px', background: importing || !jsonInput.trim() ? '#aaa' : '#1A7A4A', color: '#fff', border: 'none', cursor: importing || !jsonInput.trim() ? 'not-allowed' : 'pointer' }}
+                style={{ fontFamily: 'Arial,sans-serif', fontSize: '13px', fontWeight: 600, padding: '10px 24px', borderRadius: '4px', background: importing || !jsonInput.trim() ? '#aaa' : existingTimelineFound ? '#2A5298' : '#1A7A4A', color: '#fff', border: 'none', cursor: importing || !jsonInput.trim() ? 'not-allowed' : 'pointer' }}
               >
-                {importing ? 'Importing...' : 'Import Timeline'}
+                {importing ? 'Checking...' : existingTimelineFound ? 'Check for Updates' : 'Import Timeline'}
               </button>
               {jsonInput && (
                 <button
