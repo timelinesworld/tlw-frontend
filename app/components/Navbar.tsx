@@ -80,7 +80,6 @@ export default function Navbar() {
 
         {/* Links */}
         <div style={{ display: 'flex', gap: '18px', fontFamily: 'Arial, sans-serif', fontSize: '12px', alignItems: 'center' }}>
-          <a href="/browse" style={{ color: '#555555', textDecoration: 'none' }}>Browse</a>
           <a href="/about" style={{ color: '#555555', textDecoration: 'none' }}>About</a>
           {/* Create Timeline Button */}
           <button
