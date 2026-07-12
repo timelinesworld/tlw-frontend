@@ -47,9 +47,14 @@ a:hover {
   text-decoration: underline;
 }
 /* Mobile responsive */
+.grid-mobile-2 {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
 @media screen and (max-width: 768px) {
   .grid-mobile-2 {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 6px !important;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
   }
 }

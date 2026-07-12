@@ -92,14 +92,12 @@ export default function Home() {
 
   const grid8: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
     gap: '8px',
     marginBottom: '0',
   };
 
   const grid4: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
     gap: '8px',
   };
 
