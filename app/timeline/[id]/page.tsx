@@ -21,11 +21,19 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
   const [allTimelines, setAllTimelines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [oldestFirst, setOldestFirst] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<number | null>(null);
+  const [editYear, setEditYear] = useState('');
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editSide, setEditSide] = useState<'positive' | 'negative'>('positive');
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
     const pathParts = window.location.pathname.split('/');
     const timelineId = pathParts[pathParts.length - 1];
+    console.log('isAdmin check:', isAdmin);
     console.log('Timeline ID from URL:', timelineId);
     setId(timelineId);
     loadAll(timelineId);
@@ -36,14 +44,16 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
     const { data: { session } } = await supabase.auth.getSession();
     setUser(session?.user ?? null);
 
-    // Load user preference
+    // Load user preference + admin check
     if (session?.user) {
       const { data: userData } = await supabase
         .from('users')
-        .select('timeline_order')
+        .select('timeline_order, role')
         .eq('id', session.user.id)
         .single();
+      
       if (userData?.timeline_order === 'oldest') setOldestFirst(true);
+      if (userData?.role === 'admin') setIsAdmin(true);
     }
 
     // Load timeline
@@ -145,7 +155,29 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
 
     setLoading(false);
   };
+const handleEditSave = async (eventId: number) => {
+    setEditSaving(true);
+    await supabase
+      .from('events')
+      .update({
+        year: editYear,
+        title: editTitle || null,
+        description: editDesc,
+        side: editSide,
+      })
+      .eq('id', eventId);
+    setEditingEventId(null);
+    setEditSaving(false);
+    loadAll(id);
+  };
 
+  const startEdit = (ev: any) => {
+    setEditingEventId(ev.id);
+    setEditYear(ev.year);
+    setEditTitle(ev.title || '');
+    setEditDesc(ev.description);
+    setEditSide(ev.side);
+  };
   const handleToggle = async () => {
     const newOrder = oldestFirst ? 'newest' : 'oldest';
     setOldestFirst(!oldestFirst);
@@ -293,47 +325,40 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
 
               {/* LEFT HALF */}
               <div style={{ width: "50%", display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: "12px" }}>
-                {ev.side === "negative" && (
+                {ev.side === "negative" && (editingEventId === ev.id ? (
+                  <div style={{ background: "#FDF0F0", border: "1px solid #F0D4D4", borderRadius: "10px", padding: "14px 16px", maxWidth: "260px" }}>
+                    <input value={editYear} onChange={e => setEditYear(e.target.value)} placeholder="Year" style={{ width: "100%", fontFamily: "Arial,sans-serif", fontSize: "11px", padding: "5px 8px", border: "1px solid #F0D4D4", borderRadius: "4px", marginBottom: "6px", outline: "none" }} />
+                    <input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Title (optional)" style={{ width: "100%", fontFamily: "Arial,sans-serif", fontSize: "11px", padding: "5px 8px", border: "1px solid #F0D4D4", borderRadius: "4px", marginBottom: "6px", outline: "none" }} />
+                    <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Description" rows={3} style={{ width: "100%", fontFamily: "Arial,sans-serif", fontSize: "11px", padding: "5px 8px", border: "1px solid #F0D4D4", borderRadius: "4px", marginBottom: "6px", outline: "none", resize: "vertical" }} />
+                    <div style={{ display: "flex", gap: "4px", marginBottom: "8px" }}>
+                      <button onClick={() => setEditSide('positive')} style={{ flex: 1, fontSize: "10px", padding: "4px", borderRadius: "4px", border: `1px solid ${editSide === 'positive' ? '#1A7A4A' : '#ddd'}`, background: editSide === 'positive' ? '#EDF7F1' : '#fff', color: editSide === 'positive' ? '#1A7A4A' : '#888', cursor: "pointer" }}>▲ Positive</button>
+                      <button onClick={() => setEditSide('negative')} style={{ flex: 1, fontSize: "10px", padding: "4px", borderRadius: "4px", border: `1px solid ${editSide === 'negative' ? '#B83232' : '#ddd'}`, background: editSide === 'negative' ? '#FDF0F0' : '#fff', color: editSide === 'negative' ? '#B83232' : '#888', cursor: "pointer" }}>▼ Negative</button>
+                    </div>
+                    <div style={{ display: "flex", gap: "4px" }}>
+                      <button onClick={() => setEditingEventId(null)} style={{ flex: 1, fontSize: "10px", padding: "5px", borderRadius: "4px", border: "1px solid #ddd", background: "#fff", color: "#555", cursor: "pointer" }}>Cancel</button>
+                      <button onClick={() => handleEditSave(ev.id)} disabled={editSaving} style={{ flex: 1, fontSize: "10px", padding: "5px", borderRadius: "4px", border: "none", background: editSaving ? "#aaa" : "#B83232", color: "#fff", cursor: "pointer" }}>{editSaving ? 'Saving...' : 'Save'}</button>
+                    </div>
+                  </div>
+                ) : (
                   <div
-                    className="event-card"
                     style={{ background: "#FDF0F0", border: "1px solid #F0D4D4", borderRadius: "10px", padding: "14px 16px", textAlign: "right", maxWidth: "260px", position: "relative", cursor: "default" }}
-                    onMouseEnter={e => {
-                      const btn = e.currentTarget.querySelector('.copy-btn') as HTMLElement;
-                      if (btn) btn.style.opacity = '1';
-                    }}
-                    onMouseLeave={e => {
-                      const btn = e.currentTarget.querySelector('.copy-btn') as HTMLElement;
-                      if (btn) btn.style.opacity = '0';
-                    }}
+                    onMouseEnter={e => { e.currentTarget.querySelectorAll('.hover-btn').forEach((b: any) => b.style.opacity = '1'); }}
+                    onMouseLeave={e => { e.currentTarget.querySelectorAll('.hover-btn').forEach((b: any) => b.style.opacity = '0'); }}
                   >
-                    <button
-                      className="copy-btn"
-                      onClick={() => {
-                        const text = `${ev.year}${ev.title ? ' — ' + ev.title : ''}\n${ev.details ? ev.details.join('\n') : ev.description}`;
-                        navigator.clipboard.writeText(text);
-                        const btn = document.activeElement as HTMLElement;
-                        if (btn) btn.textContent = '✓';
-                        setTimeout(() => { if (btn) btn.textContent = '📋'; }, 2000);
-                      }}
-                      title="Copy"
-                      style={{ position: "absolute", top: "8px", left: "8px", background: "none", border: "none", cursor: "pointer", opacity: 0, transition: "opacity 0.2s", padding: "2px", display: "flex", alignItems: "center", justifyContent: "center" }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B83232" strokeWidth="1.5" strokeOpacity="0.6">
-                        <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                      </svg>
+                    <button className="hover-btn" title="Copy" onClick={() => { const text = `${ev.year}${ev.title ? ' — ' + ev.title : ''}\n${ev.details ? ev.details.join('\n') : ev.description}`; navigator.clipboard.writeText(text); const btn = document.activeElement as HTMLElement; if (btn) btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>'; setTimeout(() => { if (btn) btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B83232" strokeWidth="1.5" strokeOpacity="0.6"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'; }, 2000); }} style={{ position: "absolute", top: "8px", left: "8px", background: "none", border: "none", cursor: "pointer", opacity: 0, transition: "opacity 0.2s", padding: "2px", display: "flex", alignItems: "center" }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B83232" strokeWidth="1.5" strokeOpacity="0.6"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                     </button>
+                    {isAdmin && (<button className="hover-btn" title="Edit" onClick={() => startEdit(ev)} style={{ position: "absolute", top: "8px", left: "30px", background: "none", border: "none", cursor: "pointer", opacity: 0, transition: "opacity 0.2s", padding: "2px", display: "flex", alignItems: "center" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B83232" strokeWidth="1.5" strokeOpacity="0.6"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>)}
                     <span style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", display: "block", marginBottom: "5px" }}>{ev.title}</span>
                     {ev.details && ev.details.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                        {ev.details.map((d: string, di: number) => (
-                          <div key={di} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5 }}>{parseBold(d)}</div>
-                        ))}
+                        {ev.details.map((d: string, di: number) => (<div key={di} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5 }}>{parseBold(d)}</div>))}
                       </div>
                     ) : (
                       <span style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5, display: "block" }}>{linkifyText(ev.description, allTimelines)}</span>
                     )}
                   </div>
-                )}
+                ))}
                 {ev.side === "negative" && <div style={{ height: "1px", background: "#F0D4D4", width: "20px", flexShrink: 0 }} />}
               </div>
 
@@ -351,46 +376,40 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
               {/* RIGHT HALF */}
               <div style={{ width: "50%", display: "flex", alignItems: "center", justifyContent: "flex-start", paddingLeft: "12px" }}>
                 {ev.side === "positive" && <div style={{ height: "1px", background: "#C8E8D5", width: "20px", flexShrink: 0 }} />}
-                {ev.side === "positive" && (
+                {ev.side === "positive" && (editingEventId === ev.id ? (
+                  <div style={{ background: "#EDF7F1", border: "1px solid #C8E8D5", borderRadius: "10px", padding: "14px 16px", maxWidth: "260px" }}>
+                    <input value={editYear} onChange={e => setEditYear(e.target.value)} placeholder="Year" style={{ width: "100%", fontFamily: "Arial,sans-serif", fontSize: "11px", padding: "5px 8px", border: "1px solid #C8E8D5", borderRadius: "4px", marginBottom: "6px", outline: "none" }} />
+                    <input value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Title (optional)" style={{ width: "100%", fontFamily: "Arial,sans-serif", fontSize: "11px", padding: "5px 8px", border: "1px solid #C8E8D5", borderRadius: "4px", marginBottom: "6px", outline: "none" }} />
+                    <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Description" rows={3} style={{ width: "100%", fontFamily: "Arial,sans-serif", fontSize: "11px", padding: "5px 8px", border: "1px solid #C8E8D5", borderRadius: "4px", marginBottom: "6px", outline: "none", resize: "vertical" }} />
+                    <div style={{ display: "flex", gap: "4px", marginBottom: "8px" }}>
+                      <button onClick={() => setEditSide('positive')} style={{ flex: 1, fontSize: "10px", padding: "4px", borderRadius: "4px", border: `1px solid ${editSide === 'positive' ? '#1A7A4A' : '#ddd'}`, background: editSide === 'positive' ? '#EDF7F1' : '#fff', color: editSide === 'positive' ? '#1A7A4A' : '#888', cursor: "pointer" }}>▲ Positive</button>
+                      <button onClick={() => setEditSide('negative')} style={{ flex: 1, fontSize: "10px", padding: "4px", borderRadius: "4px", border: `1px solid ${editSide === 'negative' ? '#B83232' : '#ddd'}`, background: editSide === 'negative' ? '#FDF0F0' : '#fff', color: editSide === 'negative' ? '#B83232' : '#888', cursor: "pointer" }}>▼ Negative</button>
+                    </div>
+                    <div style={{ display: "flex", gap: "4px" }}>
+                      <button onClick={() => setEditingEventId(null)} style={{ flex: 1, fontSize: "10px", padding: "5px", borderRadius: "4px", border: "1px solid #ddd", background: "#fff", color: "#555", cursor: "pointer" }}>Cancel</button>
+                      <button onClick={() => handleEditSave(ev.id)} disabled={editSaving} style={{ flex: 1, fontSize: "10px", padding: "5px", borderRadius: "4px", border: "none", background: editSaving ? "#aaa" : "#1A7A4A", color: "#fff", cursor: "pointer" }}>{editSaving ? 'Saving...' : 'Save'}</button>
+                    </div>
+                  </div>
+                ) : (
                   <div
                     style={{ background: "#EDF7F1", border: "1px solid #C8E8D5", borderRadius: "10px", padding: "14px 16px", textAlign: "left", maxWidth: "260px", position: "relative", cursor: "default" }}
-                    onMouseEnter={e => {
-                      const btn = e.currentTarget.querySelector('.copy-btn') as HTMLElement;
-                      if (btn) btn.style.opacity = '1';
-                    }}
-                    onMouseLeave={e => {
-                      const btn = e.currentTarget.querySelector('.copy-btn') as HTMLElement;
-                      if (btn) btn.style.opacity = '0';
-                    }}
+                    onMouseEnter={e => { e.currentTarget.querySelectorAll('.hover-btn').forEach((b: any) => b.style.opacity = '1'); }}
+                    onMouseLeave={e => { e.currentTarget.querySelectorAll('.hover-btn').forEach((b: any) => b.style.opacity = '0'); }}
                   >
-                    <button
-                      className="copy-btn"
-                      onClick={() => {
-                        const text = `${ev.year}${ev.title ? ' — ' + ev.title : ''}\n${ev.details ? ev.details.join('\n') : ev.description}`;
-                        navigator.clipboard.writeText(text);
-                        const btn = document.activeElement as HTMLElement;
-                        if (btn) btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>';
-                        setTimeout(() => { if (btn) btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'; }, 2000);
-                      }}
-                      title="Copy"
-                      style={{ position: "absolute", top: "8px", right: "8px", background: "none", border: "none", cursor: "pointer", opacity: 0, transition: "opacity 0.2s", padding: "2px", display: "flex", alignItems: "center", justifyContent: "center" }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A7A4A" strokeWidth="1.5" strokeOpacity="0.6">
-                        <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                      </svg>
+                    <button className="hover-btn" title="Copy" onClick={() => { const text = `${ev.year}${ev.title ? ' — ' + ev.title : ''}\n${ev.details ? ev.details.join('\n') : ev.description}`; navigator.clipboard.writeText(text); const btn = document.activeElement as HTMLElement; if (btn) btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>'; setTimeout(() => { if (btn) btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1A7A4A" strokeWidth="1.5" strokeOpacity="0.6"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'; }, 2000); }} style={{ position: "absolute", top: "8px", right: "30px", background: "none", border: "none", cursor: "pointer", opacity: 0, transition: "opacity 0.2s", padding: "2px", display: "flex", alignItems: "center" }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1A7A4A" strokeWidth="1.5" strokeOpacity="0.6"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                     </button>
+                    {isAdmin && (<button className="hover-btn" title="Edit" onClick={() => startEdit(ev)} style={{ position: "absolute", top: "8px", right: "8px", background: "none", border: "none", cursor: "pointer", opacity: 0, transition: "opacity 0.2s", padding: "2px", display: "flex", alignItems: "center" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1A7A4A" strokeWidth="1.5" strokeOpacity="0.6"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>)}
                     <span style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", display: "block", marginBottom: "5px" }}>{ev.title}</span>
                     {ev.details && ev.details.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                        {ev.details.map((d: string, di: number) => (
-                          <div key={di} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5 }}>{parseBold(d)}</div>
-                        ))}
+                        {ev.details.map((d: string, di: number) => (<div key={di} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5 }}>{parseBold(d)}</div>))}
                       </div>
                     ) : (
                       <span style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5, display: "block" }}>{linkifyText(ev.description, allTimelines)}</span>
                     )}
                   </div>
-                )}
+                ))}
               </div>
 
             </div>
