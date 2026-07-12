@@ -23,7 +23,7 @@ export default function Home() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile();
-  const isMobile = useIsMobile();
+  
 
   useEffect(() => {
     loadData();
@@ -143,7 +143,7 @@ export default function Home() {
       <div style={{ padding: '20px 16px 32px', maxWidth: '900px', margin: '0 auto' }}>
 
         {loading ? (
-          <div className="text-red-500" style={{ fontFamily: 'Arial,sans-serif', fontSize: '13px', textAlign: 'center', padding: '40px' }}>Loading...</div>
+          <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '13px', color: '#888', textAlign: 'center', padding: '40px' }}>Loading...</div>
         ) : (
           <>
             {/* Section 1 — Featured Timelines */}
