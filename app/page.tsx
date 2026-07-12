@@ -104,6 +104,25 @@ export default function Home() {
 
   return (
     <main>
+      <style>{`
+        .tlw-grid-8 {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 8px;
+          margin-bottom: 0;
+        }
+        .tlw-grid-4 {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 8px;
+        }
+        @media (max-width: 768px) {
+          .tlw-grid-8, .tlw-grid-4 {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 6px !important;
+          }
+        }
+      `}</style>
       <Navbar />
 
       {/* Hero Banner */}
@@ -148,7 +167,7 @@ export default function Home() {
           <>
             {/* Section 1 — Featured Timelines */}
             {sectionHead('Featured Timelines', '/browse')}
-            <div className="grid-cols-2 md:grid-cols-4 grid gap-2 mb-2" style={{ gridTemplateRows: 'repeat(2, 1fr)' }}>
+            <div className="tlw-grid-8" style={{ gridTemplateRows: 'repeat(2, 1fr)', marginBottom: '8px' }}>
               {featured.map((t: any) => (
                 <TimelineCard key={t.id} t={t} posCount={getPos(t.id)} negCount={getNeg(t.id)} />
               ))}
@@ -158,7 +177,7 @@ export default function Home() {
 
             {/* Section 2 — Recently Added */}
             {sectionHead('Recently Added', '/browse')}
-            <div className="grid-cols-2 md:grid-cols-4 grid gap-2">
+            <div className="tlw-grid-4">
               {recentlyAdded.map((t: any) => (
                 <TimelineCard key={t.id} t={t} posCount={getPos(t.id)} negCount={getNeg(t.id)} />
               ))}
