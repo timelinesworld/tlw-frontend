@@ -1,5 +1,5 @@
 'use client';
-
+import SpeedDial from './SpeedDial';
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
@@ -82,12 +82,7 @@ export default function Navbar() {
 
           {/* Right */}
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <button
-              onClick={handleNewTimeline}
-              style={{ fontFamily: 'Arial,sans-serif', fontSize: '10px', fontWeight: 600, padding: '5px 14px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', background: 'transparent', cursor: 'pointer' }}
-            >
-              + New Timeline
-            </button>
+            
 
             {user ? (
               <>
@@ -143,6 +138,9 @@ export default function Navbar() {
           </div>
         </div>
       )}
+    
+
+    <SpeedDial />
     </>
   );
 }

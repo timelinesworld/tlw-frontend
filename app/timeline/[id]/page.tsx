@@ -6,7 +6,7 @@ import Navbar from '../../components/Navbar';
 import ShareButtons from '../../components/ShareButtons';
 import FavouriteHeart from '../../components/FavouriteHeart';
 import { linkifyText, parseBold } from '../../lib/linkify';
-import QuickAddEvent from '../../components/QuickAddEvent';
+import SpeedDial from '../../components/SpeedDial';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -428,10 +428,7 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
       <footer style={{ background: "#fff", borderTop: "1px solid #DEDAD3", textAlign: "center", padding: "14px", fontFamily: "Arial,sans-serif", fontSize: "10px", color: "#bbb", marginTop: "24px" }}>
         Timelines World · open knowledge · simple · free · forever
       </footer>
-    {/* Quick Add Event — Admin only */}
-      {user && (
-        <QuickAddEvent timelineId={Number(id)} onAdded={() => loadAll(id)} />
-      )}
+    <SpeedDial timelineId={Number(id)} onEventAdded={() => loadAll(id)} />
 
     </main>
   );
