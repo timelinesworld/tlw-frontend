@@ -92,16 +92,10 @@ export default function Home() {
   );
 
   const grid8: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-    gap: isMobile ? '6px' : '8px',
     marginBottom: '0',
   };
 
   const grid4: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-    gap: isMobile ? '6px' : '8px',
   };
 
   const divider = (
@@ -154,7 +148,7 @@ export default function Home() {
           <>
             {/* Section 1 — Featured Timelines */}
             {sectionHead('Featured Timelines', '/browse')}
-            <div className="grid-mobile-2" style={{ ...grid8, gridTemplateRows: 'repeat(2, 1fr)', marginBottom: '8px' }}>
+            <div className="grid-cols-2 md:grid-cols-4 grid gap-2 mb-2" style={{ gridTemplateRows: 'repeat(2, 1fr)' }}>
               {featured.map((t: any) => (
                 <TimelineCard key={t.id} t={t} posCount={getPos(t.id)} negCount={getNeg(t.id)} />
               ))}
@@ -164,7 +158,7 @@ export default function Home() {
 
             {/* Section 2 — Recently Added */}
             {sectionHead('Recently Added', '/browse')}
-            <div className="grid-mobile-2" style={grid4}>
+            <div className="grid-cols-2 md:grid-cols-4 grid gap-2">
               {recentlyAdded.map((t: any) => (
                 <TimelineCard key={t.id} t={t} posCount={getPos(t.id)} negCount={getNeg(t.id)} />
               ))}
