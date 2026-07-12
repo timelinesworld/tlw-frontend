@@ -109,31 +109,35 @@ export default function Home() {
     <main>
       <Navbar />
 
-      {/* Hero */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #DEDAD3', padding: '28px 20px 20px', textAlign: 'center' }}>
-        <p style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#2A5298', marginBottom: '8px' }}>The chronology of everything</p>
-        <h1 style={{ fontFamily: 'Georgia,serif', fontSize: '22px', fontWeight: 700, color: '#1C1C1E', marginBottom: '8px' }}>Every story has a timeline.</h1>
-        <p style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: '#555', marginBottom: '16px' }}>Browse timelines for people, places, events, inventions, disasters and more.</p>
-
-        <div style={{ maxWidth: '400px', margin: '0 auto 14px' }}>
-          <SearchAutocomplete
-            onSearch={q => {
-              if (q.trim()) window.location.href = '/browse?q=' + encodeURIComponent(q.trim());
-              else window.location.href = '/browse';
-            }}
+      {/* Hero Banner */}
+      <div style={{ background: '#0B1120', width: '100%' }}>
+        <div style={{ maxWidth: '960px', margin: '0 auto', position: 'relative', height: '299px', overflow: 'hidden' }}>
+          <img
+            src="/tlw_hero_desktop.png"
+            alt="Timelines World — The Chronology of Everything"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
           />
-        </div>
-
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', justifyContent: 'center' }}>
-          {categories.map((cat, i) => (
-            <button
-              key={cat}
-              onClick={() => window.location.href = cat === 'All' ? '/browse' : '/category/' + encodeURIComponent(cat)}
-              style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: '1px solid #DEDAD3', background: i === 0 ? '#2A5298' : '#fff', color: i === 0 ? '#fff' : '#555', cursor: 'pointer' }}
-            >
-              {cat}
-            </button>
-          ))}
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: '0 20px 36px' }}>
+            <div style={{ display: 'flex', gap: '6px', width: '100%', maxWidth: '440px', marginBottom: '10px' }}>
+              <SearchAutocomplete
+                onSearch={q => {
+                  if (q.trim()) window.location.href = '/browse?q=' + encodeURIComponent(q.trim());
+                  else window.location.href = '/browse';
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', justifyContent: 'center', maxWidth: '600px' }}>
+              {categories.map((cat, i) => (
+                <button
+                  key={cat}
+                  onClick={() => window.location.href = cat === 'All' ? '/browse' : '/category/' + encodeURIComponent(cat)}
+                  style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.3)', background: i === 0 ? '#E53E3E' : 'rgba(0,0,0,0.35)', color: '#fff', cursor: 'pointer' }}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

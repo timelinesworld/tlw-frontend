@@ -30,7 +30,7 @@ export default function TimelineCard({ t, posCount, negCount }: TimelineCardProp
           .select('id')
           .eq('user_id', session.user.id)
           .eq('timeline_id', t.id)
-          .single();
+          .maybeSingle();
         setIsFavourite(!!data);
       }
     };

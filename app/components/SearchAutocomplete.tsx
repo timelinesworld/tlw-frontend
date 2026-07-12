@@ -106,7 +106,7 @@ export default function SearchAutocomplete({ onSearch, placeholder = "Search any
             fontWeight: 600,
             padding: '8px 16px',
             borderRadius: '4px',
-            background: '#2A5298',
+            background: '#E53E3E',
             color: '#fff',
             border: 'none',
             cursor: 'pointer',
