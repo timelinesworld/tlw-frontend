@@ -5,7 +5,7 @@
 :root {
   --ink: #1c1c1e;
   --ink-soft: #555555;
-  --bg: #F5F4F0;
+  --bg: #ffffff;
   --paper: #ffffff;
   --rule: #DEDAD3;
   --pos: #1A7A4A;
@@ -33,7 +33,7 @@ html {
 
 body {
   font-family: Georgia, 'Times New Roman', serif;
-  background: var(--bg);
+  background: #ffffff;
   color: var(--ink);
   min-height: 100vh;
 }

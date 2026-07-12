@@ -110,7 +110,7 @@ export default function Home() {
       <Navbar />
 
       {/* Hero Banner */}
-      <div style={{ background: '#0B1120', width: '100%' }}>
+      <div style={{ background: '#0B1120', width: '100%', overflow: 'hidden' }}>
         <div style={{ maxWidth: '960px', margin: '0 auto', position: 'relative', height: '299px', overflow: 'hidden' }}>
           <img
             src="/tlw_hero_desktop.png"

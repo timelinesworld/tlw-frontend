@@ -101,6 +101,9 @@ export default function Navbar() {
                 <span style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', color: '#ccc' }}>
                   {user.user_metadata?.full_name?.split(' ')[0] || user.email}
                 </span>
+                {isAdmin && (
+                  <a href="/admin" style={{ fontFamily: 'Arial,sans-serif', fontSize: '10px', fontWeight: 600, padding: '5px 12px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', textDecoration: 'none' }}>Admin</a>
+                )}
                 <button
                   onClick={handleLogout}
                   style={{ fontFamily: 'Arial,sans-serif', fontSize: '10px', fontWeight: 600, padding: '5px 12px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', background: 'transparent', cursor: 'pointer' }}
