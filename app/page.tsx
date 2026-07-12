@@ -23,6 +23,7 @@ export default function Home() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     loadData();
@@ -92,13 +93,15 @@ export default function Home() {
 
   const grid8: React.CSSProperties = {
     display: 'grid',
-    gap: '8px',
+    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+    gap: isMobile ? '6px' : '8px',
     marginBottom: '0',
   };
 
   const grid4: React.CSSProperties = {
     display: 'grid',
-    gap: '8px',
+    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+    gap: isMobile ? '6px' : '8px',
   };
 
   const divider = (

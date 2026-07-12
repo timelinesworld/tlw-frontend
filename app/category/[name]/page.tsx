@@ -128,7 +128,7 @@ export default function CategoryPage() {
 
         {/* Grid */}
         {!loading && timelines.length > 0 && (
-          <div className="grid-mobile-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(210px, 1fr))', gap: '8px' }}>
             {timelines.map((t: any) => (
               <TimelineCard key={t.id} t={t} posCount={getPos(t.id)} negCount={getNeg(t.id)} />
             ))}
