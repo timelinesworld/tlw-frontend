@@ -189,7 +189,7 @@ export default function Browse() {
             <button onClick={handleClear} style={{ fontFamily: "Arial,sans-serif", fontSize: "12px", color: "#2A5298", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Clear search</button>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fill, minmax(210px, 1fr))", gap: "8px", marginBottom: "24px" }}>
+          <div className="grid-mobile-2" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: "8px", marginBottom: "24px" }}>
             {filtered.map((t: any) => (
               <a key={t.id} href={"/timeline/" + t.id} style={{ textDecoration: "none" }}>
                 <div style={{ background: "#fff", border: "1px solid #DEDAD3", borderRadius: "6px", padding: "12px 14px", cursor: "pointer", height: "100%" }}>

@@ -133,7 +133,7 @@ export default function FavouritesPage() {
 
         {/* Favourites Grid */}
         {!loading && timelines.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fill, minmax(210px, 1fr))", gap: "8px" }}>
+          <div className="grid-mobile-2" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: "8px" }}>
             {timelines.map((t: any) => (
               <div key={t.id} style={{ background: "#fff", border: "1px solid #DEDAD3", borderRadius: "6px", padding: "12px 14px", position: "relative" }}>
 

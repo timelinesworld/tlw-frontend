@@ -92,15 +92,15 @@ export default function Home() {
 
   const grid8: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-    gap: isMobile ? '6px' : '8px',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '8px',
     marginBottom: '0',
   };
 
   const grid4: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-    gap: isMobile ? '6px' : '8px',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '8px',
   };
 
   const divider = (
@@ -113,11 +113,12 @@ export default function Home() {
 
       {/* Hero Banner */}
       <div style={{ background: '#0B1120', width: '100%' }}>
-        <div style={{ maxWidth: isMobile ? '100%' : '960px', margin: '0 auto', position: 'relative', height: isMobile ? 'auto' : '299px', overflow: 'hidden' }}>
+        <div className="hero-container" style={{ maxWidth: '960px', margin: '0 auto', position: 'relative', height: '299px', overflow: 'hidden' }}>
           <img
-            src={isMobile ? '/tlw_hero_mobile.png' : '/tlw_hero_desktop.png'}
+            src="/tlw_hero_desktop.png"
             alt="Timelines World — The Chronology of Everything"
-            style={{ width: '100%', height: isMobile ? 'auto' : '100%', objectFit: isMobile ? 'contain' : 'cover', objectPosition: 'center', display: 'block' }}
+            className="hero-mobile-img"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
           />
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: isMobile ? '0 16px 16px' : '0 20px 20px' }}>
             <div style={{ width: '100%', maxWidth: isMobile ? '100%' : '440px', marginBottom: '10px' }}>
@@ -152,7 +153,7 @@ export default function Home() {
           <>
             {/* Section 1 — Featured Timelines */}
             {sectionHead('Featured Timelines', '/browse')}
-            <div style={{ ...grid8, gridTemplateRows: 'repeat(2, 1fr)', marginBottom: '8px' }}>
+            <div className="grid-mobile-2" style={{ ...grid8, gridTemplateRows: 'repeat(2, 1fr)', marginBottom: '8px' }}>
               {featured.map((t: any) => (
                 <TimelineCard key={t.id} t={t} posCount={getPos(t.id)} negCount={getNeg(t.id)} />
               ))}
@@ -162,7 +163,7 @@ export default function Home() {
 
             {/* Section 2 — Recently Added */}
             {sectionHead('Recently Added', '/browse')}
-            <div style={grid4}>
+            <div className="grid-mobile-2" style={grid4}>
               {recentlyAdded.map((t: any) => (
                 <TimelineCard key={t.id} t={t} posCount={getPos(t.id)} negCount={getNeg(t.id)} />
               ))}
