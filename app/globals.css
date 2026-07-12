@@ -47,18 +47,9 @@ a:hover {
   text-decoration: underline;
 }
 /* Mobile responsive */
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   .grid-mobile-2 {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 6px !important;
-  }
-
-  .hero-mobile-img {
-    content: url('/tlw_hero_mobile.png');
-    height: auto !important;
-  }
-
-  .hero-container {
-    height: auto !important;
   }
 }
