@@ -218,7 +218,7 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
               {t.is_live && (
                 <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                   <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#FF2020", flexShrink: 0 }} />
-                  <span style={{ fontFamily: "Arial,sans-serif", fontSize: "14px", fontWeight: 400, color: "#FF2020", letterSpacing: "0.05em" }}>LIVE</span>
+                  <span style={{ fontFamily: "Arial,sans-serif", fontSize: "14px", fontWeight: 400, color: "#FF2020", letterSpacing: "0.05em" }}>ACTIVE</span>
                 </div>
               )}
             </div>

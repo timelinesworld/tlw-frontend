@@ -483,7 +483,7 @@ const handleUpdateMode = async (parsed: any) => {
                     style={{ fontFamily: 'Arial,sans-serif', fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '20px', border: `1px solid ${t.is_live ? '#FF2020' : '#DEDAD3'}`, color: t.is_live ? '#FF2020' : '#aaa', background: t.is_live ? '#FFF0F0' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
                     <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.is_live ? '#FF2020' : '#ccc' }} />
-                    {t.is_live ? 'LIVE' : 'Live'}
+                    {t.is_live ? 'ACTIVE' : 'Live'}
                   </button>
 
                   <a href={'/timeline/' + t.id} style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '5px 12px', borderRadius: '4px', border: '1px solid #DEDAD3', color: '#555', textDecoration: 'none' }}>View</a>
