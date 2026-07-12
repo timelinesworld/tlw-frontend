@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import Navbar from './components/Navbar';
 import TimelineCard from './components/TimelineCard';
+import { useIsMobile } from './lib/useIsMobile';
 import SearchAutocomplete from './components/SearchAutocomplete';
 
 const supabase = createClient(
@@ -21,6 +22,7 @@ export default function Home() {
   const [events, setEvents] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     loadData();
@@ -90,15 +92,15 @@ export default function Home() {
 
   const grid8: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '8px',
+    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+    gap: isMobile ? '6px' : '8px',
     marginBottom: '0',
   };
 
   const grid4: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '8px',
+    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+    gap: isMobile ? '6px' : '8px',
   };
 
   const divider = (
@@ -110,15 +112,15 @@ export default function Home() {
       <Navbar />
 
       {/* Hero Banner */}
-      <div style={{ background: '#0B1120', width: '100%', overflow: 'hidden' }}>
-        <div style={{ maxWidth: '960px', margin: '0 auto', position: 'relative', height: '299px', overflow: 'hidden' }}>
+      <div style={{ background: '#0B1120', width: '100%' }}>
+        <div style={{ maxWidth: isMobile ? '100%' : '960px', margin: '0 auto', position: 'relative', height: isMobile ? 'auto' : '299px', overflow: 'hidden' }}>
           <img
-            src="/tlw_hero_desktop.png"
+            src={isMobile ? '/tlw_hero_mobile.png' : '/tlw_hero_desktop.png'}
             alt="Timelines World — The Chronology of Everything"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
+            style={{ width: '100%', height: isMobile ? 'auto' : '100%', objectFit: isMobile ? 'contain' : 'cover', objectPosition: 'center', display: 'block' }}
           />
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: '0 20px 36px' }}>
-            <div style={{ display: 'flex', gap: '6px', width: '100%', maxWidth: '440px', marginBottom: '10px' }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: isMobile ? '0 16px 16px' : '0 20px 20px' }}>
+            <div style={{ width: '100%', maxWidth: isMobile ? '100%' : '440px', marginBottom: '10px' }}>
               <SearchAutocomplete
                 onSearch={q => {
                   if (q.trim()) window.location.href = '/browse?q=' + encodeURIComponent(q.trim());
@@ -126,12 +128,12 @@ export default function Home() {
                 }}
               />
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', justifyContent: 'center', maxWidth: '600px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', justifyContent: 'center', maxWidth: isMobile ? '100%' : '600px' }}>
               {categories.map((cat, i) => (
                 <button
                   key={cat}
                   onClick={() => window.location.href = cat === 'All' ? '/browse' : '/category/' + encodeURIComponent(cat)}
-                  style={{ fontFamily: 'Arial,sans-serif', fontSize: '9px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.3)', background: i === 0 ? '#E53E3E' : 'rgba(0,0,0,0.35)', color: '#fff', cursor: 'pointer' }}
+                  style={{ fontFamily: 'Arial,sans-serif', fontSize: isMobile ? '8px' : '9px', fontWeight: 600, padding: '3px 8px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.3)', background: i === 0 ? '#E53E3E' : 'rgba(0,0,0,0.35)', color: '#fff', cursor: 'pointer' }}
                 >
                   {cat}
                 </button>

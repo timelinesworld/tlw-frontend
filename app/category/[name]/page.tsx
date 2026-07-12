@@ -1,10 +1,11 @@
 'use client';
-
+import { useIsMobile } from '../../lib/useIsMobile';
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import Navbar from '../../components/Navbar';
 import TimelineCard from '../../components/TimelineCard';
 
+const isMobile = useIsMobile();
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -127,7 +128,7 @@ export default function CategoryPage() {
 
         {/* Grid */}
         {!loading && timelines.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(210px, 1fr))', gap: '8px' }}>
             {timelines.map((t: any) => (
               <TimelineCard key={t.id} t={t} posCount={getPos(t.id)} negCount={getNeg(t.id)} />
             ))}

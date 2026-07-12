@@ -1,10 +1,11 @@
 'use client';
-
+import { useIsMobile } from '../lib/useIsMobile';
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import Navbar from '../components/Navbar';
 import FavouriteHeart from '../components/FavouriteHeart';
 
+const isMobile = useIsMobile();
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -132,7 +133,7 @@ export default function FavouritesPage() {
 
         {/* Favourites Grid */}
         {!loading && timelines.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: "10px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fill, minmax(210px, 1fr))", gap: "8px" }}>
             {timelines.map((t: any) => (
               <div key={t.id} style={{ background: "#fff", border: "1px solid #DEDAD3", borderRadius: "6px", padding: "12px 14px", position: "relative" }}>
 
