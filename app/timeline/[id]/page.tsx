@@ -33,8 +33,7 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
   useEffect(() => {
     const pathParts = window.location.pathname.split('/');
     const timelineId = pathParts[pathParts.length - 1];
-    console.log('isAdmin check:', isAdmin);
-    console.log('Timeline ID from URL:', timelineId);
+     
     setId(timelineId);
     loadAll(timelineId);
   }, []);
@@ -56,12 +55,22 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
       if (userData?.role === 'admin') setIsAdmin(true);
     }
 
-    // Load timeline
+     // Load timeline
     const { data: tl, error: tlError } = await supabase
       .from('timelines')
-      .select('*')
+      .select('*, categories!timelines_category_id_fkey(name)')
       .eq('id', timelineId)
-      .single();
+      .maybeSingle();
+
+    // Load secondary category separately
+    if (tl?.secondary_category_id) {
+      const { data: secCat } = await supabase
+        .from('categories')
+        .select('name')
+        .eq('id', tl.secondary_category_id)
+        .single();
+      if (secCat) tl.secondary_category = secCat;
+    }
 
     
     // Load primary category
