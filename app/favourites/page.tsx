@@ -5,13 +5,13 @@ import Navbar from '../components/Navbar';
 import FavouriteHeart from '../components/FavouriteHeart';
 import { useIsMobile } from '../lib/useIsMobile';
 
-const isMobile = useIsMobile();
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 export default function FavouritesPage() {
+  const isMobile = useIsMobile();
   const [timelines, setTimelines] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
