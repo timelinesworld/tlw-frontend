@@ -58,3 +58,16 @@ a:hover {
     gap: 6px;
   }
 }
+/* Mobile hero image */
+@media (max-width: 768px) {
+  .hero-mobile-img {
+    content: url('/tlw_hero_mobile.png');
+    height: auto !important;
+    object-fit: contain !important;
+  }
+
+  .hero-container {
+    height: auto !important;
+    min-height: 200px;
+  }
+}
