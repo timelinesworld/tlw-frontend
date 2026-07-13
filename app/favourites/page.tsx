@@ -1,9 +1,9 @@
 'use client';
-import { useIsMobile } from '../lib/useIsMobile';
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import Navbar from '../components/Navbar';
 import FavouriteHeart from '../components/FavouriteHeart';
+import { useIsMobile } from '../lib/useIsMobile';
 
 const isMobile = useIsMobile();
 const supabase = createClient(
