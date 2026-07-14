@@ -33,6 +33,8 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
   const [headerTitle, setHeaderTitle] = useState('');
   const [headerDesc, setHeaderDesc] = useState('');
   const [headerSaving, setHeaderSaving] = useState(false);
+  const [theme, setTheme] = useState<'classic' | 'single'>('classic');
+  const [themeDropdown, setThemeDropdown] = useState(false);
 
   useEffect(() => {
     const pathParts = window.location.pathname.split('/');
@@ -51,12 +53,17 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
     if (session?.user) {
       const { data: userData } = await supabase
         .from('users')
-        .select('timeline_order, role')
+        .select('timeline_order, role, timeline_theme')
         .eq('id', session.user.id)
         .single();
       
       if (userData?.timeline_order === 'oldest') setOldestFirst(true);
       if (userData?.role === 'admin') setIsAdmin(true);
+      if (userData?.timeline_theme === 'single') setTheme('single');
+      else if (!userData?.timeline_theme) {
+        // Not logged in or no preference — use screen size default
+        if (window.innerWidth < 768) setTheme('single');
+      }
     }
 
      // Load timeline
@@ -175,6 +182,15 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
     loadAll(id);
   };
   
+const handleThemeToggle = async () => {
+    const newTheme = theme === 'classic' ? 'single' : 'classic';
+    setTheme(newTheme);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      await supabase.from('users').update({ timeline_theme: newTheme }).eq('id', session.user.id);
+    }
+  };
+
   const handleHeaderSave = async () => {
     setHeaderSaving(true);
     await supabase
@@ -317,7 +333,38 @@ const handleEditSave = async (eventId: number) => {
         </div>
 
         {/* Toggle Button */}
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "4px", marginTop: "-18px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px", marginTop: "-18px" }}>
+          {/* Theme Dropdown — Left */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setThemeDropdown(!themeDropdown)}
+              style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", fontWeight: 600, padding: "5px 12px", borderRadius: "4px", border: "1px solid #DEDAD3", background: "#fff", color: "#555", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+            >
+              🎨 Theme
+              <span style={{ fontSize: "9px" }}>▼</span>
+            </button>
+            {themeDropdown && (
+              <div style={{ position: "absolute", top: "32px", left: 0, background: "#fff", border: "1px solid #DEDAD3", borderRadius: "6px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)", zIndex: 100, minWidth: "160px", overflow: "hidden" }}>
+                <button
+                  onClick={async () => { setTheme('classic'); setThemeDropdown(false); const { data: { session } } = await supabase.auth.getSession(); if (session?.user) await supabase.from('users').update({ timeline_theme: 'classic' }).eq('id', session.user.id); }}
+                  style={{ width: "100%", fontFamily: "Arial,sans-serif", fontSize: "11px", padding: "10px 14px", background: theme === 'classic' ? '#EDF7F1' : '#fff', color: theme === 'classic' ? '#1A7A4A' : '#555', border: "none", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  {theme === 'classic' && <span style={{ color: '#1A7A4A' }}>✓</span>}
+                  {theme !== 'classic' && <span style={{ opacity: 0 }}>✓</span>}
+                  ⇌ Classic
+                </button>
+                <div style={{ height: "1px", background: "#DEDAD3" }} />
+                <button
+                  onClick={async () => { setTheme('single'); setThemeDropdown(false); const { data: { session } } = await supabase.auth.getSession(); if (session?.user) await supabase.from('users').update({ timeline_theme: 'single' }).eq('id', session.user.id); }}
+                  style={{ width: "100%", fontFamily: "Arial,sans-serif", fontSize: "11px", padding: "10px 14px", background: theme === 'single' ? '#EDF7F1' : '#fff', color: theme === 'single' ? '#1A7A4A' : '#555', border: "none", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  {theme === 'single' && <span style={{ color: '#1A7A4A' }}>✓</span>}
+                  {theme !== 'single' && <span style={{ opacity: 0 }}>✓</span>}
+                  ▌ Single Side
+                </button>
+              </div>
+            )}
+          </div>
           <button
             onClick={handleToggle}
             style={{
@@ -361,23 +408,84 @@ const handleEditSave = async (eventId: number) => {
               </>
             )}
           </button>
+           
         </div>
 
         {/* Timeline */}
         <div style={{ position: "relative" }}>
-          <div style={{ position: "absolute", left: "50%", top: oldestFirst ? "52px" : "0", width: "2px", background: "#C8C4BC", transform: "translateX(-50%)", bottom: oldestFirst ? "0" : "42px", zIndex: 0 }} />
+          {/* Axis line */}
+          <div style={{
+            position: "absolute",
+            left: theme === 'single' ? "86px" : "50%",
+            top: oldestFirst ? "52px" : "0",
+            width: "2px",
+            background: "#C8C4BC",
+            transform: theme === 'single' ? "none" : "translateX(-50%)",
+            bottom: oldestFirst ? "0" : "42px",
+            zIndex: 0
+          }} />
 
           {/* Origin dot at TOP when oldest first */}
           {oldestFirst && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 2, paddingBottom: "6px" }}>
-              <div style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", marginBottom: "10px", whiteSpace: "nowrap" }}>{t.title}</div>
-              <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "#1C1C1E", boxShadow: "0 0 0 4px #F5F4F0, 0 0 0 6px #1C1C1E" }} />
+            <div style={{ display: "flex", flexDirection: "column", alignItems: theme === 'single' ? "flex-start" : "center", position: "relative", zIndex: 2, paddingBottom: "20px", marginTop: theme === 'single' ? "8px" : "0" }}>
+              {theme === 'single' ? (
+                <>
+                  <div style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", whiteSpace: "nowrap", marginBottom: "10px", paddingLeft: "45px" }}>{t.title}</div>
+                  <div style={{ display: "flex", alignItems: "center", marginTop: "0" }}>
+                    <div style={{ width: "75px", minWidth: "75px", flexShrink: 0 }} />
+                    <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "#1C1C1E", boxShadow: "0 0 0 4px #F5F4F0, 0 0 0 6px #1C1C1E", flexShrink: 0 }} />
+                  </div>
+                  <div style={{ height: "20px" }} />
+                </>
+              ) : (
+                <>
+                  <div style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", marginBottom: "10px", whiteSpace: "nowrap" }}>{t.title}</div>
+                  <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "#1C1C1E", boxShadow: "0 0 0 4px #F5F4F0, 0 0 0 6px #1C1C1E" }} />
+                </>
+              )}
             </div>
           )}
 
           {/* Events */}
           {displayEvents.map((ev: any, i: number) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", width: "100%", position: "relative", marginBottom: "28px", minHeight: "85px", zIndex: 1 }}>
+            <div key={i} style={{ display: "flex", alignItems: theme === 'single' ? "flex-start" : "center", width: "100%", position: "relative", marginBottom: "28px", minHeight: theme === 'single' ? "auto" : "85px", zIndex: 1 }}>
+
+              {/* SINGLE SIDE LAYOUT */}
+              {theme === 'single' && (
+                <div style={{ display: "flex", alignItems: "center", width: "100%", paddingLeft: "0px" }}>
+                  {/* Year */}
+                  <div style={{ width: "80px", minWidth: "80px", textAlign: "right", paddingRight: "10px", fontFamily: "Arial,sans-serif", fontSize: "10px", fontWeight: 700, color: "#666", paddingTop: "5px", flexShrink: 0, whiteSpace: "nowrap" }}>{ev.year}</div>
+                  {/* Dot + Connector combined */}
+                  <div style={{ display: "flex", alignItems: "center", alignSelf: "center", marginTop: "5px" }}>
+                    <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: ev.side === "positive" ? "#1A7A4A" : "#B83232", boxShadow: ev.side === "positive" ? "0 0 0 3px #F5F4F0, 0 0 0 4.5px #1A7A4A" : "0 0 0 3px #F5F4F0, 0 0 0 4.5px #B83232", flexShrink: 0 }} />
+                    <div style={{ width: "5px", flexShrink: 0 }} />
+                    <div style={{ width: "20px", height: "1px", background: ev.side === "positive" ? "#C8E8D5" : "#F0D4D4", flexShrink: 0 }} />
+                  </div>
+                  {/* Card */}
+                  <div
+                    style={{ flex: 1, background: ev.side === "positive" ? "#EDF7F1" : "#FDF0F0", border: ev.side === "positive" ? "1px solid #C8E8D5" : "1px solid #F0D4D4", borderRadius: "10px", padding: "12px 14px", position: "relative", cursor: "default" }}
+                    onMouseEnter={e => { e.currentTarget.querySelectorAll('.hover-btn').forEach((b: any) => b.style.opacity = '1'); }}
+                    onMouseLeave={e => { e.currentTarget.querySelectorAll('.hover-btn').forEach((b: any) => b.style.opacity = '0'); }}
+                  >
+                    <button className="hover-btn" title="Copy" onClick={() => { const text = `${ev.year}${ev.title ? ' — ' + ev.title : ''}\n${ev.details ? ev.details.join('\n') : ev.description}`; navigator.clipboard.writeText(text); }} style={{ position: "absolute", top: "8px", right: "52px", background: "none", border: "none", cursor: "pointer", opacity: 0, transition: "opacity 0.2s", padding: "2px", display: "flex", alignItems: "center" }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={ev.side === "positive" ? "#1A7A4A" : "#B83232"} strokeWidth="1.5" strokeOpacity="0.6"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
+                    {isAdmin && (<button className="hover-btn" title="Edit" onClick={() => startEdit(ev)} style={{ position: "absolute", top: "8px", right: "30px", background: "none", border: "none", cursor: "pointer", opacity: 0, transition: "opacity 0.2s", padding: "2px", display: "flex", alignItems: "center" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={ev.side === "positive" ? "#1A7A4A" : "#B83232"} strokeWidth="1.5" strokeOpacity="0.6"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>)}
+                    {isAdmin && (<button className="hover-btn" title="Delete" onClick={() => handleDeleteEvent(ev.id)} style={{ position: "absolute", top: "8px", right: "8px", background: "none", border: "none", cursor: "pointer", opacity: 0, transition: "opacity 0.2s", padding: "2px", display: "flex", alignItems: "center" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={ev.side === "positive" ? "#1A7A4A" : "#B83232"} strokeWidth="1.5" strokeOpacity="0.6"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>)}
+                    <span style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", display: "block", marginBottom: "5px" }}>{ev.title}</span>
+                    {ev.details && ev.details.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                        {ev.details.map((d: string, di: number) => (<div key={di} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5 }}>{parseBold(d)}</div>))}
+                      </div>
+                    ) : (
+                      <span style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#555", lineHeight: 1.5, display: "block" }}>{linkifyText(ev.description, allTimelines)}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* CLASSIC LAYOUT */}
+              {theme === 'classic' && (<>
 
               {/* LEFT HALF */}
               <div style={{ width: "50%", display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: "12px" }}>
@@ -470,14 +578,28 @@ const handleEditSave = async (eventId: number) => {
                 ))}
               </div>
 
+            </>)}
+
             </div>
           ))}
 
           {/* Origin dot at BOTTOM when newest first */}
           {!oldestFirst && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 2, paddingBottom: "20px" }}>
-              <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "#1C1C1E", boxShadow: "0 0 0 4px #F5F4F0, 0 0 0 6px #1C1C1E" }} />
-              <div style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", marginTop: "14px", whiteSpace: "nowrap" }}>{t.title}</div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: theme === 'single' ? "flex-start" : "center", paddingLeft: theme === 'single' ? "0px" : "0", position: "relative", zIndex: 2, paddingBottom: "20px" }}>
+              {theme === 'single' ? (
+                <>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <div style={{ width: "75px", minWidth: "75px", flexShrink: 0 }} />
+                    <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "#1C1C1E", boxShadow: "0 0 0 4px #F5F4F0, 0 0 0 6px #1C1C1E", flexShrink: 0 }} />
+                  </div>
+                  <div style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", marginTop: "14px", whiteSpace: "nowrap", paddingLeft: "45px" }}>{t.title}</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "#1C1C1E", boxShadow: "0 0 0 4px #F5F4F0, 0 0 0 6px #1C1C1E" }} />
+                  <div style={{ fontFamily: "Georgia,serif", fontSize: "13px", fontWeight: 700, color: "#1C1C1E", marginTop: "14px", whiteSpace: "nowrap" }}>{t.title}</div>
+                </>
+              )}
             </div>
           )}
 
