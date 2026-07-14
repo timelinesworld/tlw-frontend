@@ -36,6 +36,7 @@ export default function AdminPage() {
   const [jsonInput, setJsonInput] = useState('');
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState('');
+  const [importedTimelineId, setImportedTimelineId] = useState<number | null>(null);
 
   // Update mode state
   const [updateMode, setUpdateMode] = useState(false);
@@ -327,6 +328,7 @@ const handleUpdateMode = async (parsed: any) => {
         setImportMessage('❌ Import failed — ' + evError.message + '. No changes saved.');
       } else {
         setImportMessage(`✅ Successfully imported "${parsed.title}" with ${events.length} events!`);
+        setImportedTimelineId(tlData.id);
         setJsonInput('');
         loadTimelines();
       }
@@ -600,8 +602,9 @@ const handleUpdateMode = async (parsed: any) => {
 
             {/* Message */}
             {importMessage && (
-              <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: importMessage.startsWith('✅') ? '#1A7A4A' : importMessage.startsWith('⚠️') ? '#B87A00' : '#B83232', marginBottom: '12px', padding: '10px', background: importMessage.startsWith('✅') ? '#EDF7F1' : importMessage.startsWith('⚠️') ? '#FFFBE6' : '#FDF0F0', borderRadius: '4px' }}>{importMessage}</div>
+              <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: importMessage.startsWith('✅') ? '#1A7A4A' : importMessage.startsWith('⚠️') ? '#B87A00' : '#B83232', marginBottom: '8px', padding: '10px', background: importMessage.startsWith('✅') ? '#EDF7F1' : importMessage.startsWith('⚠️') ? '#FFFBE6' : '#FDF0F0', borderRadius: '4px' }}>{importMessage}</div>
             )}
+             
 
             {/* Update Mode Preview */}
             {updateMode && (
@@ -699,11 +702,14 @@ const handleUpdateMode = async (parsed: any) => {
               </button>
               {jsonInput && (
                 <button
-                  onClick={() => { setJsonInput(''); setImportMessage(''); }}
+                  onClick={() => { setJsonInput(''); setImportMessage(''); setImportedTimelineId(null); }}
                   style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', padding: '10px 16px', borderRadius: '4px', border: '1px solid #DEDAD3', background: '#fff', color: '#555', cursor: 'pointer' }}
                 >
                   Clear
                 </button>
+              )}
+              {importedTimelineId && importMessage.startsWith('✅') && (
+                <a href={'/timeline/' + importedTimelineId} target="_blank" style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', fontWeight: 600, padding: '10px 16px', borderRadius: '4px', background: '#2A5298', color: '#fff', textDecoration: 'none', display: 'inline-block' }}>View Timeline →</a>
               )}
             </div>
 
