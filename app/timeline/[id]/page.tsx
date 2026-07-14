@@ -49,6 +49,12 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
     const { data: { session } } = await supabase.auth.getSession();
     setUser(session?.user ?? null);
 
+    // Set default theme based on screen size for non-logged-in users
+    if (!session?.user) {
+      if (window.innerWidth < 768) setTheme('single');
+      else setTheme('classic');
+    }
+
     // Load user preference + admin check
     if (session?.user) {
       const { data: userData } = await supabase
@@ -60,9 +66,11 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
       if (userData?.timeline_order === 'oldest') setOldestFirst(true);
       if (userData?.role === 'admin') setIsAdmin(true);
       if (userData?.timeline_theme === 'single') setTheme('single');
-      else if (!userData?.timeline_theme) {
-        // Not logged in or no preference — use screen size default
+      else if (userData?.timeline_theme === 'classic') setTheme('classic');
+      else {
+        // No preference saved — use screen size default
         if (window.innerWidth < 768) setTheme('single');
+        else setTheme('classic');
       }
     }
 
