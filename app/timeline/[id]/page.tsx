@@ -29,6 +29,10 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
   const [editDesc, setEditDesc] = useState('');
   const [editSide, setEditSide] = useState<'positive' | 'negative'>('positive');
   const [editSaving, setEditSaving] = useState(false);
+  const [editingHeader, setEditingHeader] = useState(false);
+  const [headerTitle, setHeaderTitle] = useState('');
+  const [headerDesc, setHeaderDesc] = useState('');
+  const [headerSaving, setHeaderSaving] = useState(false);
 
   useEffect(() => {
     const pathParts = window.location.pathname.split('/');
@@ -170,6 +174,21 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
     await supabase.from('events').delete().eq('id', eventId);
     loadAll(id);
   };
+  
+  const handleHeaderSave = async () => {
+    setHeaderSaving(true);
+    await supabase
+      .from('timelines')
+      .update({
+        title: headerTitle,
+        description: headerDesc,
+      })
+      .eq('id', id);
+    setEditingHeader(false);
+    setHeaderSaving(false);
+    loadAll(id);
+  };
+
 const handleEditSave = async (eventId: number) => {
     setEditSaving(true);
     await supabase
@@ -247,15 +266,37 @@ const handleEditSave = async (eventId: number) => {
               </>
             )}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", paddingRight: "32px" }}>
-            <h1 style={{ fontFamily: "Georgia,serif", fontSize: "22px", fontWeight: 700, color: "#1C1C1E", lineHeight: 1.2, margin: 0 }}>{t.title}</h1>
-            {t.is_admins_pick && (
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="#F5A623" stroke="#F5A623" strokeWidth="1.5" style={{ flexShrink: 0 }}>
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-            )}
-          </div>
-          <p style={{ fontFamily: "Arial,sans-serif", fontSize: "12px", color: "#555", lineHeight: 1.6, marginBottom: "10px" }}>{t.description}</p>
+          {editingHeader ? (
+            <div style={{ marginBottom: "12px" }}>
+              <input value={headerTitle} onChange={e => setHeaderTitle(e.target.value)} style={{ width: "100%", fontFamily: "Georgia,serif", fontSize: "18px", fontWeight: 700, padding: "6px 10px", border: "1px solid #DEDAD3", borderRadius: "4px", marginBottom: "8px", outline: "none" }} />
+              <textarea value={headerDesc} onChange={e => setHeaderDesc(e.target.value)} rows={2} style={{ width: "100%", fontFamily: "Arial,sans-serif", fontSize: "12px", padding: "6px 10px", border: "1px solid #DEDAD3", borderRadius: "4px", marginBottom: "8px", outline: "none", resize: "vertical" }} />
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button onClick={() => setEditingHeader(false)} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", fontWeight: 600, padding: "6px 14px", borderRadius: "4px", border: "1px solid #DEDAD3", background: "#fff", color: "#555", cursor: "pointer" }}>Cancel</button>
+                <button onClick={handleHeaderSave} disabled={headerSaving} style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", fontWeight: 600, padding: "6px 14px", borderRadius: "4px", border: "none", background: headerSaving ? "#aaa" : "#1A7A4A", color: "#fff", cursor: "pointer" }}>{headerSaving ? 'Saving...' : 'Save'}</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", paddingRight: "32px" }}
+                onMouseEnter={e => { const btn = e.currentTarget.querySelector('.header-edit-btn') as HTMLElement; if (btn) btn.style.opacity = '1'; }}
+                onMouseLeave={e => { const btn = e.currentTarget.querySelector('.header-edit-btn') as HTMLElement; if (btn) btn.style.opacity = '0'; }}
+              >
+                <h1 style={{ fontFamily: "Georgia,serif", fontSize: "22px", fontWeight: 700, color: "#1C1C1E", lineHeight: 1.2, margin: 0 }}>{t.title}</h1>
+                {t.is_admins_pick && (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="#F5A623" stroke="#F5A623" strokeWidth="1.5" style={{ flexShrink: 0 }}>
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                )}
+                {isAdmin && (
+                  <button className="header-edit-btn" title="Edit" onClick={() => { setHeaderTitle(t.title); setHeaderDesc(t.description); setEditingHeader(true); }} style={{ background: "none", border: "none", cursor: "pointer", opacity: 0, transition: "opacity 0.2s", padding: "2px", display: "flex", alignItems: "center", flexShrink: 0 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A7A4A" strokeWidth="1.5" strokeOpacity="0.7"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                )}
+              </div>
+              <p style={{ fontFamily: "Arial,sans-serif", fontSize: "12px", color: "#555", lineHeight: 1.6, marginBottom: "10px" }}>{t.description}</p>
+            </>
+          )}
           <div style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#aaa", marginBottom: "12px" }}>
             {events.length} events · {posCount} ▲ · {negCount} ▼ · by community
           </div>
