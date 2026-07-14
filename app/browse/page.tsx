@@ -79,7 +79,7 @@ export default function Browse() {
     applyFilters(search, activeCategory, sort);
   };
 
-  const applyFilters = (searchTerm: string, category: string, sort: string) => {
+  const applyFilters = async (searchTerm: string, category: string, sort: string) => {
     let results = [...timelines];
 
     // Search filter
@@ -110,6 +110,11 @@ export default function Browse() {
     }
 
     setFiltered(results);
+
+     // Track failed searches — 0 results + min 2 chars
+    if (results.length === 0 && searchTerm.trim().length >= 2) {
+      await supabase.rpc('upsert_failed_search', { search_query: searchTerm.trim().toLowerCase() });
+    }
   };
 
   const handleClear = () => {

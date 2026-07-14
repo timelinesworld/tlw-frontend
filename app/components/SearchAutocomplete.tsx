@@ -52,6 +52,8 @@ export default function SearchAutocomplete({ onSearch, placeholder = "Search any
     setSuggestions(data || []);
     setShowDropdown(true);
     setLoading(false);
+
+     
   };
 
   const handleSelect = (t: any) => {

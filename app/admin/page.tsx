@@ -37,6 +37,7 @@ export default function AdminPage() {
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState('');
   const [importedTimelineId, setImportedTimelineId] = useState<number | null>(null);
+  const [failedSearches, setFailedSearches] = useState<any[]>([]);
 
   // Update mode state
   const [updateMode, setUpdateMode] = useState(false);
@@ -71,11 +72,21 @@ export default function AdminPage() {
       } else {
         setAdminCheck(true);
         loadTimelines();
+        loadFailedSearches();
       }
     };
 
     checkAdmin();
   }, []);
+
+const loadFailedSearches = async () => {
+    const { data } = await supabase
+      .from('failed_searches')
+      .select('*')
+      .eq('is_resolved', false)
+      .order('search_count', { ascending: false });
+    setFailedSearches(data || []);
+  };
 
   const loadTimelines = async () => {
     const { data } = await supabase
@@ -816,6 +827,49 @@ const handleUpdateMode = async (parsed: any) => {
 
           </div>
         )}
+
+        {/* Failed Searches Section */}
+        <div style={{ background: '#fff', border: '1px solid #DEDAD3', borderRadius: '8px', padding: '24px', marginTop: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <div>
+              <h2 style={{ fontFamily: 'Georgia,serif', fontSize: '18px', fontWeight: 700, color: '#1C1C1E', marginBottom: '4px' }}>🔍 Failed Searches</h2>
+              <p style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: '#888' }}>Searches with zero results — sorted by frequency.</p>
+            </div>
+            <button onClick={loadFailedSearches} style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', padding: '6px 14px', borderRadius: '4px', border: '1px solid #DEDAD3', background: '#F5F4F0', color: '#555', cursor: 'pointer' }}>Refresh</button>
+          </div>
+
+          {failedSearches.length === 0 ? (
+            <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: '#aaa', textAlign: 'center', padding: '20px' }}>No unresolved failed searches.</div>
+          ) : (
+            <div>
+              {failedSearches.map((fs: any) => (
+                <div key={fs.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: '6px', border: '1px solid #DEDAD3', marginBottom: '8px', background: '#FAFAFA' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontFamily: 'Georgia,serif', fontSize: '14px', fontWeight: 700, color: '#1C1C1E' }}>{fs.query}</span>
+                    <span style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', color: '#888' }}>{fs.search_count} {fs.search_count === 1 ? 'search' : 'searches'}</span>
+                    <span style={{ fontFamily: 'Arial,sans-serif', fontSize: '10px', color: '#aaa' }}>Last: {new Date(fs.last_searched_at).toLocaleDateString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={async () => {
+                        await supabase.from('failed_searches').update({ is_resolved: true }).eq('id', fs.id);
+                        setFailedSearches(prev => prev.filter(s => s.id !== fs.id));
+                      }}
+                      style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '5px 12px', borderRadius: '4px', border: 'none', background: '#EDF7F1', color: '#1A7A4A', cursor: 'pointer' }}
+                    >✓ Resolved</button>
+                    <button
+                      onClick={async () => {
+                        await supabase.from('failed_searches').delete().eq('id', fs.id);
+                        setFailedSearches(prev => prev.filter(s => s.id !== fs.id));
+                      }}
+                      style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '5px 12px', borderRadius: '4px', border: 'none', background: '#FDF0F0', color: '#B83232', cursor: 'pointer' }}
+                    >🗑️ Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
       </div>
     </main>
