@@ -1,18 +1,58 @@
 import React from 'react';
 
-// Parse **bold** markdown in text
+// Parse **bold**, [Label](URL) and raw https:// links
 export const parseBold = (text: string): React.ReactNode => {
-  if (!text || !text.includes('**')) return text;
-  const parts = text.split(/\*\*(.*?)\*\*/g);
-  return (
-    <>
-      {parts.map((part, i) =>
-        i % 2 === 1
-          ? <strong key={i} style={{ fontWeight: 700 }}>{part}</strong>
-          : <span key={i}>{part}</span>
-      )}
-    </>
-  );
+  if (!text) return text;
+
+  // Combined regex — matches **bold**, [Label](URL), or https:// URLs
+  const pattern = /(\*\*.*?\*\*|\[([^\]]+)\]\((https?:\/\/[^\)]+)\)|https?:\/\/[^\s]+)/g;
+
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  let match;
+  let i = 0;
+
+  while ((match = pattern.exec(text)) !== null) {
+    // Add text before match
+    if (match.index > last) {
+      parts.push(<span key={i++}>{text.slice(last, match.index)}</span>);
+    }
+
+    const full = match[0];
+
+    if (full.startsWith('**')) {
+      // Bold text
+      const inner = full.slice(2, -2);
+      parts.push(<strong key={i++} style={{ fontWeight: 700 }}>{inner}</strong>);
+    } else if (full.startsWith('[')) {
+      // [Label](URL) — labelled link
+      const label = match[2];
+      const url = match[3];
+      parts.push(
+        <a key={i++} href={url} target="_blank" rel="noopener noreferrer"
+          style={{ color: 'inherit', textDecoration: 'underline', textDecorationColor: '#1A7A4A', textDecorationThickness: '1.5px', textUnderlineOffset: '2px', cursor: 'pointer' }}>
+          {label}
+        </a>
+      );
+    } else {
+      // Raw https:// URL
+      parts.push(
+        <a key={i++} href={full} target="_blank" rel="noopener noreferrer"
+          style={{ color: 'inherit', textDecoration: 'underline', textDecorationColor: '#1A7A4A', textDecorationThickness: '1.5px', textUnderlineOffset: '2px', cursor: 'pointer' }}>
+          {full}
+        </a>
+      );
+    }
+
+    last = match.index + full.length;
+  }
+
+  // Add remaining text
+  if (last < text.length) {
+    parts.push(<span key={i++}>{text.slice(last)}</span>);
+  }
+
+  return <>{parts}</>;
 };
 
 const STOPWORDS = new Set([
@@ -63,7 +103,7 @@ export const linkifyText = (
         if (match) {
           return <a key={i} href={`/timeline/${match.id}`} style={{ color: 'inherit', textDecoration: 'underline', textDecorationColor: '#1A7A4A', textDecorationThickness: '1.5px', textUnderlineOffset: '2px', cursor: 'pointer' }}>{part}</a>;
         }
-        return <span key={i}>{part}</span>;
+        return <span key={i}>{parseBold(part)}</span>;
       })}
     </>
   );
