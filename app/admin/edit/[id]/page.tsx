@@ -25,6 +25,7 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
   const [events, setEvents] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [filtersJson, setFiltersJson] = useState('');
 
   // New event form
   const [newYear, setNewYear] = useState('');
@@ -82,6 +83,9 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
           .single();
         setSecondaryCategory(secCat?.name || '');
       }
+      if (tl.filters) {
+        setFiltersJson(JSON.stringify(tl.filters, null, 2));
+      }
     }
 
     // Load events
@@ -117,9 +121,14 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
       secondaryCatId = secCatData?.id || null;
     }
 
+    let parsedFilters = null;
+    if (filtersJson.trim()) {
+      try { parsedFilters = JSON.parse(filtersJson); } catch { setMessage('❌ Invalid Filters JSON.'); setSaving(false); return; }
+    }
+
     const { error } = await supabase
       .from('timelines')
-      .update({ title, description, category_id: catData.id, secondary_category_id: secondaryCatId })
+      .update({ title, description, category_id: catData.id, secondary_category_id: secondaryCatId, filters: parsedFilters })
       .eq('id', id);
 
     if (error) {
@@ -240,6 +249,9 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
               <option value="">None</option>
               {categories.filter(c => c !== category).map(c => <option key={c} value={c}>{c}</option>)}
             </select>
+
+            <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', display: 'block', marginBottom: '5px' }}>Filters JSON (optional)</label>
+            <textarea value={filtersJson} onChange={e => setFiltersJson(e.target.value)} placeholder={`Leave empty for no filters. Example:\n[\n  {"label":"Weight Class","key":"Division","options":["Heavyweight","Middleweight"]},\n  {"label":"Gender","key":"Gender","options":["Men","Women"]}\n]`} rows={5} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'monospace', fontSize: '11px' }} />
 
           {message && (
             <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: message.startsWith('✅') ? '#1A7A4A' : '#B83232', marginBottom: '12px' }}>{message}</div>

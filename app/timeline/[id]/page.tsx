@@ -35,6 +35,8 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
   const [headerSaving, setHeaderSaving] = useState(false);
   const [theme, setTheme] = useState<'classic' | 'single'>('classic');
   const [themeDropdown, setThemeDropdown] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  //const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const pathParts = window.location.pathname.split('/');
@@ -265,7 +267,17 @@ const handleEditSave = async (eventId: number) => {
 
   const posCount = events.filter(e => e.side === 'positive').length;
   const negCount = events.filter(e => e.side === 'negative').length;
-  const displayEvents = oldestFirst ? [...events] : [...events].reverse();
+  const displayEvents = (oldestFirst ? [...events] : [...events].reverse()).filter((ev: any) => {
+    if (!t?.filters || t.filters.length === 0) return true;
+    return t.filters.every((filter: any) => {
+      const selected = activeFilters[filter.key] || 'All';
+      if (selected === 'All') return true;
+      return ev.details?.some((d: string) =>
+        d.toLowerCase().startsWith(filter.key.toLowerCase() + ':') &&
+        d.toLowerCase().includes(selected.toLowerCase())
+      );
+    });
+  });
 
   return (
     <main>
@@ -339,6 +351,39 @@ const handleEditSave = async (eventId: number) => {
             </div>
           </div>
         </div>
+
+        {/* Filter Dropdowns — shown only if timeline has filters defined */}
+        {t.filters && t.filters.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center", marginBottom: "10px", marginTop: "-10px" }}>
+            {t.filters.map((filter: any) => (
+              <div key={filter.key} style={{ position: "relative" }}>
+                <select
+                  value={activeFilters[filter.key] || 'All'}
+                  onChange={e => setActiveFilters(prev => ({ ...prev, [filter.key]: e.target.value }))}
+                  style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", fontWeight: 600, padding: "5px 28px 5px 12px", borderRadius: "4px", border: "1px solid #DEDAD3", background: "#fff", color: "#555", cursor: "pointer", appearance: "none", outline: "none" }}
+                >
+                  <option value="All">{filter.label}: All</option>
+                  {filter.options.map((opt: string) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
+            <span style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#888", marginLeft: "4px" }}>
+              {(() => {
+                const filtered = displayEvents.filter((ev: any) => {
+                  if (!t.filters) return true;
+                  return t.filters.every((filter: any) => {
+                    const selected = activeFilters[filter.key] || 'All';
+                    if (selected === 'All') return true;
+                    return ev.details?.some((d: string) => d.toLowerCase().startsWith(filter.key.toLowerCase() + ':') && d.toLowerCase().includes(selected.toLowerCase()));
+                  });
+                });
+                return `Showing ${filtered.length} of ${displayEvents.length} events`;
+              })()}
+            </span>
+          </div>
+        )}
 
         {/* Toggle Button */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px", marginTop: "-18px" }}>

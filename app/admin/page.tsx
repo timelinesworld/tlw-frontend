@@ -36,6 +36,7 @@ export default function AdminPage() {
   const [jsonInput, setJsonInput] = useState('');
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState('');
+  const [filtersJson, setFiltersJson] = useState('');
   const [importedTimelineId, setImportedTimelineId] = useState<number | null>(null);
   const [failedSearches, setFailedSearches] = useState<any[]>([]);
 
@@ -155,7 +156,7 @@ const loadFailedSearches = async () => {
 
     const { error } = await supabase
       .from('timelines')
-      .insert([{ title, description, category_id: catData.id, secondary_category_id: secondaryCatId, views: 0 }]);
+      .insert([{ title, description, category_id: catData.id, secondary_category_id: secondaryCatId, views: 0, filters: filtersJson.trim() ? JSON.parse(filtersJson) : null }]);
 
     if (error) {
       setMessage('Error: ' + error.message);
@@ -165,6 +166,7 @@ const loadFailedSearches = async () => {
       setDescription('');
       setCategory('');
       setSecondaryCategory('');
+      setFiltersJson('');
       loadTimelines();
     }
     setSaving(false);
@@ -311,6 +313,7 @@ const handleUpdateMode = async (parsed: any) => {
           description: parsed.description,
           category_id: catData.id,
           secondary_category_id: secCatId,
+          filters: parsed.filters || null,
           views: 0
         }])
         .select()
@@ -526,6 +529,10 @@ const handleUpdateMode = async (parsed: any) => {
               <option value="">None</option>
               {categories.filter(c => c !== category).map(c => <option key={c} value={c}>{c}</option>)}
             </select>
+
+            <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', display: 'block', marginBottom: '5px' }}>Filters JSON (optional)</label>
+            <textarea value={filtersJson} onChange={e => setFiltersJson(e.target.value)} placeholder={`Leave empty for no filters. Example:\n[\n  {"label":"Weight Class","key":"Division","options":["Heavyweight","Middleweight"]},\n  {"label":"Gender","key":"Gender","options":["Men","Women"]}\n]`} rows={5} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'monospace', fontSize: '11px' }} />
+
             {message && (
               <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: message.startsWith('✅') ? '#1A7A4A' : '#B83232', marginBottom: '12px' }}>{message}</div>
             )}
@@ -766,6 +773,7 @@ const handleUpdateMode = async (parsed: any) => {
                           title: parsed.title,
                           description: parsed.description,
                           category_id: catData.id,
+                          filters: parsed.filters || null,
                           views: 0
                         }])
                         .select()
