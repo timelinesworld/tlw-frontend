@@ -386,7 +386,7 @@ const handleEditSave = async (eventId: number) => {
         )}
 
         {/* Toggle Button */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px", marginTop: "-18px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px", marginTop: t?.filters && t.filters.length > 0 ? "4px" : "-18px" }}>
           {/* Theme Dropdown — Left */}
           <div style={{ position: "relative" }}>
             <button
