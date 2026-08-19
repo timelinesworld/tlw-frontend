@@ -1,0 +1,15 @@
+name: Fetch Trending Topics
+on:
+  schedule:
+    - cron: '30 5 * * *'    # 11:00 AM IST
+    - cron: '30 13 * * *'   # 07:00 PM IST
+  workflow_dispatch:          # Manual trigger button on GitHub
+
+jobs:
+  fetch-trending:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call TLW Trending API
+        run: |
+          curl -X GET https://www.timelinesworld.com/api/trending
+          echo "Trending topics fetched and sent to Telegram"
