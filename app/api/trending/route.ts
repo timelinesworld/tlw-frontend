@@ -86,7 +86,7 @@ async function checkAlreadyPublished(topics: string[]): Promise<string[]> {
 }
 
 async function sendTelegram(message: string) {
-  await fetch(
+  const res = await fetch(
     `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
     {
       method: 'POST',
@@ -98,6 +98,7 @@ async function sendTelegram(message: string) {
       })
     }
   );
+  return await res.json();
 }
 
 export async function GET() {
@@ -132,9 +133,15 @@ export async function GET() {
     message += `Select 2 from India + 2 from World for new timelines.`;
 
     // Send to Telegram
-    await sendTelegram(message);
+    const telegramResult = await sendTelegram(message);
 
-    return NextResponse.json({ success: true, message: 'Trending topics sent to Telegram' });
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Trending topics sent to Telegram',
+      telegramResult,
+      chatId: TELEGRAM_CHAT_ID,
+      tokenExists: !!TELEGRAM_BOT_TOKEN
+    });
   } catch (error) {
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }
