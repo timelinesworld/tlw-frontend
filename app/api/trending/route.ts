@@ -133,15 +133,9 @@ export async function GET() {
     message += `Select 2 from India + 2 from World for new timelines.`;
 
     // Send to Telegram
-    const telegramResult = await sendTelegram(message);
+    await sendTelegram(message);
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Trending topics sent to Telegram',
-      telegramResult,
-      chatId: TELEGRAM_CHAT_ID,
-      tokenExists: !!TELEGRAM_BOT_TOKEN
-    });
+    return NextResponse.json({ success: true, message: 'Trending topics sent to Telegram' });
   } catch (error) {
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }
