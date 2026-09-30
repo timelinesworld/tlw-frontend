@@ -13,6 +13,23 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+const formatLastUpdated = (updatedAt?: string | null, createdAt?: string | null): string | null => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+  for (const value of [updatedAt, createdAt]) {
+    if (!value) continue;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) continue;
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata', day: 'numeric', month: 'numeric', year: 'numeric',
+    }).formatToParts(date);
+    const day = Number(parts.find(part => part.type === 'day')?.value);
+    const month = Number(parts.find(part => part.type === 'month')?.value);
+    const year = parts.find(part => part.type === 'year')?.value;
+    return `${day} ${months[month - 1]} ${year}`;
+  }
+  return null;
+};
+
 export default function TimelinePage({ params }: { params: Promise<{ id: string }> }) {
   const [id, setId] = useState('');
   const [t, setT] = useState<any>(null);
@@ -267,6 +284,7 @@ const handleEditSave = async (eventId: number) => {
 
   const posCount = events.filter(e => e.side === 'positive').length;
   const negCount = events.filter(e => e.side === 'negative').length;
+  const lastUpdated = formatLastUpdated(t.updated_at, t.created_at);
   const displayEvents = (oldestFirst ? [...events] : [...events].reverse()).filter((ev: any) => {
     if (!t?.filters || t.filters.length === 0) return true;
     return t.filters.every((filter: any) => {
@@ -334,7 +352,7 @@ const handleEditSave = async (eventId: number) => {
             </>
           )}
           <div style={{ fontFamily: "Arial,sans-serif", fontSize: "11px", color: "#aaa", marginBottom: "12px" }}>
-            {events.length} events · {posCount} ▲ · {negCount} ▼ · by community
+            {events.length} events · {posCount} ▲ · {negCount} ▼{lastUpdated ? ` · Last updated: ${lastUpdated}` : ''}
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
