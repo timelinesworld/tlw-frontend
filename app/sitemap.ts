@@ -33,15 +33,21 @@ export default async function sitemap() {
   // Dynamic timeline pages
   const { data: timelines } = await supabase
     .from('timelines')
-    .select('id, created_at')
+    .select('id, updated_at, created_at')
     .order('created_at', { ascending: false });
 
-  const timelinePages = (timelines || []).map((t: any) => ({
-    url: `${baseUrl}/timeline/${t.id}`,
-    lastModified: new Date(t.created_at),
-    changeFrequency: 'weekly',
-    priority: 0.8,
-  }));
+  const timelinePages = (timelines || []).map((t: any) => {
+    const lastModified = [t.updated_at, t.created_at]
+      .filter((value): value is string => typeof value === 'string' && value.length > 0)
+      .map(value => new Date(value))
+      .find(date => !Number.isNaN(date.getTime()));
+    return {
+      url: `${baseUrl}/timeline/${t.id}`,
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    };
+  });
 
   return [...staticPages, ...timelinePages];
 }
