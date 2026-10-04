@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { addEventBlock, type EventPlacement } from '../lib/eventOrdering';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,6 +22,7 @@ export default function QuickAddEvent({ timelineId, onAdded }: Props) {
   const [description, setDescription] = useState('');
   const [side, setSide] = useState<'positive' | 'negative'>('positive');
   const [saving, setSaving] = useState(false);
+  const [placement, setPlacement] = useState<EventPlacement>('top');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -43,18 +45,15 @@ export default function QuickAddEvent({ timelineId, onAdded }: Props) {
       return;
     }
     setSaving(true);
-    const { error } = await supabase
-      .from('events')
-      .insert([{
-        timeline_id: timelineId,
-        year: year.trim(),
-        title: title.trim() || null,
-        description: description.trim(),
-        side,
-      }]);
+    const { error } = await addEventBlock(supabase, timelineId, [{
+      year: year.trim(),
+      title: title.trim() || null,
+      description: description.trim(),
+      side,
+    }], placement);
 
     if (error) {
-      setMessage('Error saving event.');
+      setMessage('Error saving event: ' + error.message);
     } else {
       setMessage('✅ Event added!');
       setYear('');
@@ -131,6 +130,13 @@ export default function QuickAddEvent({ timelineId, onAdded }: Props) {
             </h3>
 
             {/* Year */}
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', display: 'block', marginBottom: '4px' }}>Position in default timeline order</label>
+              <select value={placement} onChange={e => setPlacement(e.target.value as EventPlacement)} style={{ width: '100%', fontFamily: 'Arial,sans-serif', fontSize: '12px', padding: '8px 10px', border: '1px solid #DEDAD3', borderRadius: '4px' }}>
+                <option value="top">Top</option>
+                <option value="bottom">Bottom</option>
+              </select>
+            </div>
             <div style={{ marginBottom: '12px' }}>
               <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', display: 'block', marginBottom: '4px' }}>Year *</label>
               <input

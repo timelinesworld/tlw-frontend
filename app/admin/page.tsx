@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { addEventBlock, importTimeline, validateImportEvents, type EventPlacement } from '../lib/eventOrdering';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,7 +38,7 @@ export default function AdminPage() {
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState('');
   const [filtersJson, setFiltersJson] = useState('');
-  const [importedTimelineId, setImportedTimelineId] = useState<number | null>(null);
+  const [importedTimelineId, setImportedTimelineId] = useState<string | null>(null);
   const [failedSearches, setFailedSearches] = useState<any[]>([]);
 
   // Update mode state
@@ -46,7 +47,12 @@ export default function AdminPage() {
   const [updateEvents, setUpdateEvents] = useState<any[]>([]);
   const [updatePreview, setUpdatePreview] = useState<any[]>([]);
   const [updateSkipped, setUpdateSkipped] = useState(0);
+  const [updatePreviewPending, setUpdatePreviewPending] = useState(false);
+  const [updatePreviewTarget, setUpdatePreviewTarget] = useState<string | null>(null);
+  const updatePreviewRequest = useRef(0);
+  const updatePreviewReady = useRef<{ request: number; target: string } | null>(null);
   const [updateConfirming, setUpdateConfirming] = useState(false);
+  const [updatePlacement, setUpdatePlacement] = useState<EventPlacement>('top');
   const [existingTimelineFound, setExistingTimelineFound] = useState(false);
   const [parsedJson, setParsedJson] = useState<any>(null);
   const [bulkImporting, setBulkImporting] = useState(false);
@@ -184,12 +190,27 @@ const loadFailedSearches = async () => {
     await supabase.from('timelines').delete().eq('id', id);
     loadTimelines();
   };
+  const clearUpdatePreview = () => {
+    updatePreviewRequest.current++;
+    updatePreviewReady.current = null;
+    setUpdatePreview([]);
+    setUpdateSkipped(0);
+    setUpdatePreviewTarget(null);
+    setUpdatePreviewPending(false);
+  };
+
 const handleUpdateMode = async (parsed: any) => {
+    clearUpdatePreview();
+    const request = updatePreviewRequest.current;
+    setUpdateTimeline(null);
+    setUpdatePreviewPending(true);
     const { data: matchedTimeline } = await supabase
       .from('timelines')
       .select('*, categories!timelines_category_id_fkey(name)')
       .ilike('title', parsed.timeline_title)
       .maybeSingle();
+
+    if (request !== updatePreviewRequest.current) return;
 
     setUpdateEvents(parsed.events || []);
     setUpdateMode(true);
@@ -198,56 +219,76 @@ const handleUpdateMode = async (parsed: any) => {
       setUpdateTimeline(matchedTimeline);
       await previewUpdateEvents(matchedTimeline.id, parsed.events || []);
     } else {
+      setUpdatePreviewPending(false);
       setUpdateTimeline(null);
       setImportMessage('⚠️ No timeline found matching "' + parsed.timeline_title + '". Please select from dropdown.');
     }
   };
 
   const previewUpdateEvents = async (timelineId: number, events: any[]) => {
-    const newEvents: any[] = [];
-    let skipped = 0;
+    clearUpdatePreview();
+    const request = updatePreviewRequest.current;
+    const target = String(timelineId);
+    const isCurrent = () => request === updatePreviewRequest.current;
+    setUpdatePreviewPending(true);
+    try {
+      validateImportEvents(events);
+      const newEvents: any[] = [];
+      let skipped = 0;
+      const seen = new Set<string>();
 
-    for (const ev of events) {
-      const { data: existing } = await supabase
-        .from('events')
-        .select('id')
-        .eq('timeline_id', timelineId)
-        .eq('year', ev.year)
-        .eq('title', ev.title || '')
-        .maybeSingle();
+      for (const ev of events) {
+        let query = supabase
+          .from('events')
+          .select('id')
+          .eq('timeline_id', timelineId)
+          .eq('year', ev.year);
+        query = ev.title ? query.eq('title', ev.title) : query.or('title.is.null,title.eq.');
+        const { data: existing, error } = await query.limit(2);
+        if (!isCurrent()) return;
+        if (error || (existing?.length || 0) > 1) {
+          setImportMessage(error ? '❌ ' + error.message : '❌ Ambiguous duplicate match. Review existing events before importing.');
+          setUpdatePreview([]);
+          return;
+        }
+        const matchKey = JSON.stringify([ev.year, ev.title || '']);
 
-      if (existing) {
-        skipped++;
-      } else {
-        newEvents.push(ev);
+        if (existing?.length || seen.has(matchKey)) {
+          skipped++;
+        } else {
+          newEvents.push(ev);
+          seen.add(matchKey);
+        }
       }
-    }
 
-    setUpdatePreview(newEvents);
-    setUpdateSkipped(skipped);
+      if (!isCurrent()) return;
+      updatePreviewReady.current = { request, target };
+      setUpdatePreviewTarget(target);
+      setUpdatePreview(newEvents);
+      setUpdateSkipped(skipped);
+    } catch (error) {
+      if (isCurrent()) setImportMessage(error instanceof Error ? error.message : 'Preview failed.');
+    } finally {
+      if (isCurrent()) setUpdatePreviewPending(false);
+    }
   };
 
   const handleUpdateTimeline = async () => {
-    if (!updateTimeline || updatePreview.length === 0) return;
+    if (!updateTimeline || updatePreview.length === 0 || updatePreviewPending || updateConfirming
+        || updatePreviewReady.current?.request !== updatePreviewRequest.current
+        || updatePreviewReady.current?.target !== String(updateTimeline.id)
+        || updatePreviewTarget !== String(updateTimeline.id)) return;
     setUpdateConfirming(true);
 
-    const events = updatePreview.map((ev: any) => ({
-      timeline_id: updateTimeline.id,
-      year: ev.year,
-      title: ev.title || null,
-      description: ev.description,
-      side: ev.side,
-      details: ev.details || null,
-    }));
-
-    const { error } = await supabase.from('events').insert(events);
+    // Send the original array: duplicate checks are repeated under a DB lock.
+    const { data, error } = await addEventBlock(supabase, updateTimeline.id, updateEvents, updatePlacement, true);
 
     if (error) {
       setImportMessage('❌ Error adding events: ' + error.message);
     } else {
-      setImportMessage(`✅ Successfully added ${updatePreview.length} new events to "${updateTimeline.title}"!`);
+      setImportMessage(`✅ Added ${data.inserted} events at the ${updatePlacement} of "${updateTimeline.title}"; ${data.skipped} duplicates skipped.`);
       setUpdateMode(false);
-      setUpdatePreview([]);
+      clearUpdatePreview();
       setUpdateTimeline(null);
       setJsonInput('');
       loadTimelines();
@@ -255,6 +296,7 @@ const handleUpdateMode = async (parsed: any) => {
     setUpdateConfirming(false);
   };
   const handleJsonImport = async () => {
+    clearUpdatePreview();
     setImportMessage('');
     setImporting(true);
     setUpdateMode(false);
@@ -263,6 +305,7 @@ const handleUpdateMode = async (parsed: any) => {
 
     try {
       const parsed = JSON.parse(jsonInput);
+      validateImportEvents(parsed.events);
 
       // Detect UPDATE mode — has timeline_title + events but no title/category
       if (parsed.timeline_title && parsed.events && !parsed.title && !parsed.category) {
@@ -271,84 +314,18 @@ const handleUpdateMode = async (parsed: any) => {
         return;
       }
 
-      const { data: catData } = await supabase
-        .from('categories')
-        .select('id')
-        .eq('name', parsed.category)
-        .single();
-
-      if (!catData) {
-        setImportMessage('❌ Category not found: ' + parsed.category);
-        setImporting(false);
-        return;
-      }
-
-      let secCatId = null;
-      if (parsed.secondary_category) {
-        const { data: secCat } = await supabase
-          .from('categories')
-          .select('id')
-          .eq('name', parsed.secondary_category)
-          .single();
-        secCatId = secCat?.id || null;
-      }
-
-      // Priority 49 — Duplicate check
-      const { data: existing } = await supabase
-        .from('timelines')
-        .select('id')
-        .eq('title', parsed.title)
-        .maybeSingle();
-
-      if (existing) {
-        setImportMessage('❌ Timeline "' + parsed.title + '" already exists. Use Check for Updates instead.');
-        setImporting(false);
-        return;
-      }
-
-      const { data: tlData, error: tlError } = await supabase
-        .from('timelines')
-        .insert([{
-          title: parsed.title,
-          description: parsed.description,
-          category_id: catData.id,
-          secondary_category_id: secCatId,
-          filters: parsed.filters || null,
-          views: 0
-        }])
-        .select()
-        .single();
-
-      if (tlError) {
-        setImportMessage('❌ Error creating timeline: ' + tlError.message);
-        setImporting(false);
-        return;
-      }
-
-      const events = parsed.events.map((ev: any) => ({
-        timeline_id: tlData.id,
-        year: ev.year,
-        title: ev.title,
-        description: ev.description,
-        side: ev.side,
-        details: ev.details || null,
-      }));
-
-      const { error: evError } = await supabase.from('events').insert(events);
-
-      if (evError) {
-        // Priority 50 — Atomic import — rollback timeline
-        await supabase.from('timelines').delete().eq('id', tlData.id);
-        setImportMessage('❌ Import failed — ' + evError.message + '. No changes saved.');
+      const { data, error } = await importTimeline(supabase, parsed);
+      if (error) {
+        setImportMessage('❌ Import failed — ' + error.message + '. No changes saved.');
       } else {
-        setImportMessage(`✅ Successfully imported "${parsed.title}" with ${events.length} events!`);
-        setImportedTimelineId(tlData.id);
+        setImportMessage(`✅ Successfully imported "${parsed.title}" with ${data.inserted} events!`);
+        setImportedTimelineId(data.timeline_id);
         setJsonInput('');
         loadTimelines();
       }
 
     } catch (err) {
-      setImportMessage('❌ Invalid JSON format. Please check and try again.');
+      setImportMessage('❌ ' + (err instanceof Error ? err.message : 'Invalid JSON format.'));
     }
 
     setImporting(false);
@@ -545,6 +522,7 @@ const handleUpdateMode = async (parsed: any) => {
         {activeTab === 'import' && (
           <div style={{ background: '#fff', border: '1px solid #DEDAD3', borderRadius: '8px', padding: '24px' }}>
             <h2 style={{ fontFamily: 'Georgia,serif', fontSize: '18px', fontWeight: 700, color: '#1C1C1E', marginBottom: '8px' }}>JSON Import</h2>
+            <p style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: '#888', marginBottom: '12px' }}>For new timelines, JSON event array order is the default top-to-bottom display order. Dates do not sort events. Each timeline and its events are imported together.</p>
             <p style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: '#888', marginBottom: '20px' }}>Import a timeline from a JSON file or paste JSON directly.</p>
 
             {/* Option 1 — File Upload */}
@@ -554,11 +532,15 @@ const handleUpdateMode = async (parsed: any) => {
                 <input
                   type="file"
                   accept=".json"
+                  disabled={updateConfirming}
                   onChange={async e => {
                     const file = e.target.files?.[0];
                     if (!file) return;
+                    clearUpdatePreview();
+                    const request = updatePreviewRequest.current;
                     const reader = new FileReader();
                     reader.onload = async (ev) => {
+                      if (request !== updatePreviewRequest.current) return;
                       const content = ev.target?.result as string;
                       setJsonInput(content);
                       setExistingTimelineFound(false);
@@ -577,6 +559,8 @@ const handleUpdateMode = async (parsed: any) => {
                             .select('id, title')
                             .eq('title', parsed.title)
                             .maybeSingle();
+
+                          if (request !== updatePreviewRequest.current) return;
 
                           if (existing) {
                             setExistingTimelineFound(true);
@@ -611,7 +595,15 @@ const handleUpdateMode = async (parsed: any) => {
               <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Option 2 — Paste JSON</div>
               <textarea
                 value={jsonInput}
-                onChange={e => setJsonInput(e.target.value)}
+                disabled={updateConfirming}
+                onChange={e => {
+                  clearUpdatePreview();
+                  setJsonInput(e.target.value);
+                  setUpdateMode(false);
+                  setUpdatePreview([]);
+                  setExistingTimelineFound(false);
+                  setParsedJson(null);
+                }}
                 placeholder='{ "title": "...", "description": "...", "category": "Person", "events": [...] }'
                 rows={12}
                 style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '12px', marginBottom: '0' }}
@@ -631,7 +623,9 @@ const handleUpdateMode = async (parsed: any) => {
                   <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', marginBottom: '6px' }}>Update timeline:</div>
                   <select
                     value={updateTimeline?.id || ''}
+                    disabled={updateConfirming}
                     onChange={async e => {
+                      clearUpdatePreview();
                       const selected = timelines.find((t: any) => t.id === Number(e.target.value));
                       setUpdateTimeline(selected || null);
                       if (selected) await previewUpdateEvents(selected.id, updateEvents);
@@ -647,8 +641,16 @@ const handleUpdateMode = async (parsed: any) => {
 
                 {updateTimeline && (
                   <>
+                    <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', color: '#555', display: 'block', marginBottom: '8px' }}>
+                      Place new events at the{' '}
+                      <select value={updatePlacement} onChange={e => setUpdatePlacement(e.target.value as EventPlacement)} disabled={updateConfirming}>
+                        <option value="top">Top</option>
+                        <option value="bottom">Bottom</option>
+                      </select>
+                      . New events keep JSON array order; existing positions stay unchanged.
+                    </label>
                     <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', color: '#555', marginBottom: '8px' }}>
-                      <strong>{updatePreview.length} new events</strong> to add
+                      {updatePreviewPending ? 'Checking events...' : <><strong>{updatePreview.length} new events</strong> to add</>}
                       {updateSkipped > 0 && <span style={{ color: '#aaa' }}> · {updateSkipped} duplicate{updateSkipped > 1 ? 's' : ''} skipped</span>}
                     </div>
 
@@ -663,23 +665,24 @@ const handleUpdateMode = async (parsed: any) => {
                         ))}
                       </div>
                     ) : (
-                      <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', color: '#aaa', marginBottom: '12px' }}>No new events to add — all events already exist.</div>
+                      <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', color: '#aaa', marginBottom: '12px' }}>{updatePreviewPending ? 'Generating preview...' : updatePreviewTarget === String(updateTimeline.id) ? 'No new events to add — all events already exist.' : 'No valid preview for this timeline.'}</div>
                     )}
 
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button
-                        onClick={() => { setUpdateMode(false); setUpdatePreview([]); setUpdateTimeline(null); setImportMessage(''); }}
+                        disabled={updateConfirming}
+                        onClick={() => { clearUpdatePreview(); setUpdateMode(false); setUpdateTimeline(null); setImportMessage(''); }}
                         style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '7px 16px', borderRadius: '4px', border: '1px solid #DEDAD3', background: '#fff', color: '#555', cursor: 'pointer' }}
                       >
                         Cancel
                       </button>
-                      {updatePreview.length > 0 && (
+                      {(updatePreviewPending || updatePreview.length > 0) && (
                         <button
                           onClick={handleUpdateTimeline}
-                          disabled={updateConfirming}
+                          disabled={updateConfirming || updatePreviewPending || updatePreviewTarget !== String(updateTimeline.id)}
                           style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '7px 16px', borderRadius: '4px', border: 'none', background: updateConfirming ? '#aaa' : '#1A7A4A', color: '#fff', cursor: updateConfirming ? 'not-allowed' : 'pointer' }}
                         >
-                          {updateConfirming ? 'Adding...' : `Add ${updatePreview.length} Events`}
+                          {updateConfirming ? 'Adding...' : updatePreviewPending ? 'Checking...' : `Add ${updatePreview.length} Events`}
                         </button>
                       )}
                     </div>
@@ -713,14 +716,15 @@ const handleUpdateMode = async (parsed: any) => {
                     handleJsonImport();
                   }
                 }}
-                disabled={importing || !jsonInput.trim()}
+                disabled={importing || updatePreviewPending || updateConfirming || !jsonInput.trim()}
                 style={{ fontFamily: 'Arial,sans-serif', fontSize: '13px', fontWeight: 600, padding: '10px 24px', borderRadius: '4px', background: importing || !jsonInput.trim() ? '#aaa' : existingTimelineFound ? '#2A5298' : '#1A7A4A', color: '#fff', border: 'none', cursor: importing || !jsonInput.trim() ? 'not-allowed' : 'pointer' }}
               >
                 {importing ? 'Checking...' : existingTimelineFound ? 'Check for Updates' : 'Import Timeline'}
               </button>
               {jsonInput && (
                 <button
-                  onClick={() => { setJsonInput(''); setImportMessage(''); setImportedTimelineId(null); }}
+                  disabled={updateConfirming}
+                  onClick={() => { clearUpdatePreview(); setJsonInput(''); setImportMessage(''); setImportedTimelineId(null); setUpdateMode(false); setExistingTimelineFound(false); setParsedJson(null); }}
                   style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', padding: '10px 16px', borderRadius: '4px', border: '1px solid #DEDAD3', background: '#fff', color: '#555', cursor: 'pointer' }}
                 >
                   Clear
@@ -734,7 +738,7 @@ const handleUpdateMode = async (parsed: any) => {
             {/* Bulk Import Section */}
             <div style={{ borderTop: '1px solid #DEDAD3', paddingTop: '20px' }}>
               <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '14px', fontWeight: 700, color: '#1C1C1E', marginBottom: '6px' }}>Bulk Import</div>
-              <p style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: '#888', marginBottom: '12px' }}>Select multiple JSON files at once — each file must contain one timeline. All will be imported automatically.</p>
+              <p style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: '#888', marginBottom: '12px' }}>Select multiple JSON files — each contains one new timeline. Each file is atomic and preserves event array order; a failed file leaves no partial timeline. Earlier successful files remain imported.</p>
 
               <input
                 type="file"
@@ -754,58 +758,16 @@ const handleUpdateMode = async (parsed: any) => {
                       const content = await file.text();
                       const parsed = JSON.parse(content);
 
-                      // Get category
-                      const { data: catData } = await supabase
-                        .from('categories')
-                        .select('id')
-                        .eq('name', parsed.category)
-                        .single();
-
-                      if (!catData) {
-                        results.push(`❌ ${file.name} — Category not found: ${parsed.category}`);
-                        continue;
-                      }
-
-                      // Insert timeline
-                      const { data: tlData, error: tlError } = await supabase
-                        .from('timelines')
-                        .insert([{
-                          title: parsed.title,
-                          description: parsed.description,
-                          category_id: catData.id,
-                          filters: parsed.filters || null,
-                          views: 0
-                        }])
-                        .select()
-                        .single();
-
-                      if (tlError) {
-                        results.push(`❌ ${file.name} — Error: ${tlError.message}`);
-                        continue;
-                      }
-
-                      // Insert events
-                      const events = parsed.events.map((ev: any) => ({
-                        timeline_id: tlData.id,
-                        year: ev.year,
-                        title: ev.title,
-                        description: ev.description,
-                        side: ev.side,
-                        details: ev.details || null,
-                      }));
-
-                      const { error: evError } = await supabase
-                        .from('events')
-                        .insert(events);
-
-                      if (evError) {
-                        results.push(`❌ ${file.name} — Events error: ${evError.message}`);
+                      validateImportEvents(parsed.events);
+                      const { data, error } = await importTimeline(supabase, parsed);
+                      if (error) {
+                        results.push(`❌ ${file.name} — ${error.message}. No changes saved for this file.`);
                       } else {
-                        results.push(`✅ ${parsed.title} — ${events.length} events imported`);
+                        results.push(`✅ ${parsed.title} — ${data.inserted} events imported`);
                       }
 
                     } catch (err) {
-                      results.push(`❌ ${file.name} — Invalid JSON format`);
+                      results.push(`❌ ${file.name} — ${err instanceof Error ? err.message : 'Invalid JSON format'}`);
                     }
                   }
 

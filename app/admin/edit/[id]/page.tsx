@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { addEventBlock, type EventPlacement } from '../../../lib/eventOrdering';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,6 +34,7 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
   const [newDesc, setNewDesc] = useState('');
   const [newSide, setNewSide] = useState<'positive' | 'negative'>('positive');
   const [addingEvent, setAddingEvent] = useState(false);
+  const [newPlacement, setNewPlacement] = useState<EventPlacement>('top');
   const [eventDetails, setEventDetails] = useState<Record<number, string>>({});
 
   useEffect(() => {
@@ -89,12 +91,13 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
     }
 
     // Load events
-    const { data: ev } = await supabase
+    const { data: ev, error: eventError } = await supabase
       .from('events')
       .select('*')
       .eq('timeline_id', timelineId)
-      .order('year', { ascending: true });
+      .order('sort_order', { ascending: true });
 
+    if (eventError) setMessage('❌ Unable to load events: ' + eventError.message);
     setEvents(ev || []);
   };
 
@@ -145,15 +148,12 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
 
     setAddingEvent(true);
 
-    const { error } = await supabase
-      .from('events')
-      .insert([{
-        timeline_id: Number(id),
-        year: newYear,
-        title: newTitle,
-        description: newDesc,
-        side: newSide,
-      }]);
+    const { error } = await addEventBlock(supabase, id, [{
+      year: newYear,
+      title: newTitle,
+      description: newDesc,
+      side: newSide,
+    }], newPlacement);
 
     if (error) {
       setMessage('❌ Error adding event: ' + error.message);
@@ -363,6 +363,11 @@ export default function EditTimeline({ params }: { params: Promise<{ id: string 
         {/* Add New Event */}
         <div style={{ background: '#fff', border: '1px solid #DEDAD3', borderRadius: '8px', padding: '24px' }}>
           <h2 style={{ fontFamily: 'Georgia,serif', fontSize: '18px', fontWeight: 700, color: '#1C1C1E', marginBottom: '16px' }}>Add New Event</h2>
+          <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', display: 'block', marginBottom: '5px' }}>Position in default timeline order</label>
+          <select value={newPlacement} onChange={e => setNewPlacement(e.target.value as EventPlacement)} style={inputStyle}>
+            <option value="top">Top</option>
+            <option value="bottom">Bottom</option>
+          </select>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
             <div>

@@ -34,6 +34,7 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
   const [id, setId] = useState('');
   const [t, setT] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
+  const [eventLoadError, setEventLoadError] = useState<string | null>(null);
   const [related, setRelated] = useState<any[]>([]);
   const [allTimelines, setAllTimelines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,19 +137,14 @@ export default function TimelinePage({ params }: { params: Promise<{ id: string 
     setT(tl);
 
     // Load events
-    const { data: ev } = await supabase
+    const { data: ev, error: eventError } = await supabase
       .from('events')
       .select('*')
-      .eq('timeline_id', timelineId);
+      .eq('timeline_id', timelineId)
+      .order('sort_order', { ascending: true });
 
-    const sorted = (ev || []).sort((a: any, b: any) => {
-      const dateA = new Date(a.year);
-      const dateB = new Date(b.year);
-      if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) return dateA.getTime() - dateB.getTime();
-      return 0;
-    });
-
-    setEvents(sorted);
+    setEventLoadError(eventError?.message || null);
+    setEvents(ev || []);
 
     // Related timelines — match primary OR secondary category first
     if (tl) {
@@ -285,7 +281,7 @@ const handleEditSave = async (eventId: number) => {
   const posCount = events.filter(e => e.side === 'positive').length;
   const negCount = events.filter(e => e.side === 'negative').length;
   const lastUpdated = formatLastUpdated(t.updated_at, t.created_at);
-  const displayEvents = (oldestFirst ? [...events] : [...events].reverse()).filter((ev: any) => {
+  const displayEvents = (oldestFirst ? [...events].reverse() : [...events]).filter((ev: any) => {
     if (!t?.filters || t.filters.length === 0) return true;
     return t.filters.every((filter: any) => {
       const selected = activeFilters[filter.key] || 'All';
@@ -518,8 +514,9 @@ const handleEditSave = async (eventId: number) => {
           )}
 
           {/* Events */}
-          {displayEvents.map((ev: any, i: number) => (
-            <div key={i} style={{ display: "flex", alignItems: theme === 'single' ? "flex-start" : "center", width: "100%", position: "relative", marginBottom: "28px", minHeight: theme === 'single' ? "auto" : "85px", zIndex: 1 }}>
+          {eventLoadError && <div role="alert" style={{ fontFamily: 'Arial,sans-serif', fontSize: '12px', color: '#B83232', marginBottom: '16px' }}>Unable to load events. Please try again later.</div>}
+          {displayEvents.map((ev: any) => (
+            <div key={ev.id} style={{ display: "flex", alignItems: theme === 'single' ? "flex-start" : "center", width: "100%", position: "relative", marginBottom: "28px", minHeight: theme === 'single' ? "auto" : "85px", zIndex: 1 }}>
 
               {/* SINGLE SIDE LAYOUT */}
               {theme === 'single' && (

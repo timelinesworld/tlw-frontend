@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { addEventBlock, type EventPlacement } from '../lib/eventOrdering';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,6 +27,7 @@ export default function SpeedDial({ timelineId, onEventAdded }: Props) {
   const [description, setDescription] = useState('');
   const [side, setSide] = useState<'positive' | 'negative'>('positive');
   const [saving, setSaving] = useState(false);
+  const [placement, setPlacement] = useState<EventPlacement>('top');
   const [message, setMessage] = useState('');
   const ref = useRef<HTMLDivElement>(null);
 
@@ -64,20 +66,21 @@ export default function SpeedDial({ timelineId, onEventAdded }: Props) {
   };
 
   const handleSaveEvent = async () => {
+    if (!timelineId) {
+      setMessage('Open a timeline to add an event.');
+      return;
+    }
     if (!year.trim() || !description.trim()) {
       setMessage('Year and description are required.');
       return;
     }
     setSaving(true);
-    const { error } = await supabase
-      .from('events')
-      .insert([{
-        timeline_id: timelineId,
-        year: year.trim(),
-        title: title.trim() || null,
-        description: description.trim(),
-        side,
-      }]);
+    const { error } = await addEventBlock(supabase, timelineId, [{
+      year: year.trim(),
+      title: title.trim() || null,
+      description: description.trim(),
+      side,
+    }], placement);
 
     if (error) {
       setMessage('❌ Error saving event.');
@@ -107,7 +110,7 @@ export default function SpeedDial({ timelineId, onEventAdded }: Props) {
             </button>
 
             {/* + New Event — only on timeline page for admin */}
-            {isTimelinePage && isAdmin && (
+            {isTimelinePage && isAdmin && timelineId && (
               <button
                 onClick={() => { setOpen(false); setShowEventForm(true); }}
                 style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 600, padding: '8px 16px', borderRadius: '20px', background: '#1A7A4A', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}
@@ -176,6 +179,13 @@ export default function SpeedDial({ timelineId, onEventAdded }: Props) {
         <div onClick={() => setShowEventForm(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '8px', padding: '24px', width: '100%', maxWidth: '380px', margin: '0 20px' }}>
             <h3 style={{ fontFamily: 'Georgia,serif', fontSize: '16px', fontWeight: 700, color: '#1C1C1E', marginBottom: '16px' }}>+ New Event</h3>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', display: 'block', marginBottom: '4px' }}>Position in default timeline order</label>
+              <select value={placement} onChange={e => setPlacement(e.target.value as EventPlacement)} style={{ width: '100%', fontFamily: 'Arial,sans-serif', fontSize: '12px', padding: '8px 10px', border: '1px solid #DEDAD3', borderRadius: '4px' }}>
+                <option value="top">Top</option>
+                <option value="bottom">Bottom</option>
+              </select>
+            </div>
             <div style={{ marginBottom: '12px' }}>
               <label style={{ fontFamily: 'Arial,sans-serif', fontSize: '11px', fontWeight: 700, color: '#555', display: 'block', marginBottom: '4px' }}>Year *</label>
               <input value={year} onChange={e => setYear(e.target.value)} placeholder="e.g. 1994 or 15 Aug 1947" style={{ width: '100%', fontFamily: 'Arial,sans-serif', fontSize: '12px', padding: '8px 10px', border: '1px solid #DEDAD3', borderRadius: '4px', outline: 'none' }} />
