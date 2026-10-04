@@ -165,20 +165,20 @@ export default function Home() {
           <div style={{ fontFamily: 'Arial,sans-serif', fontSize: '13px', color: '#888', textAlign: 'center', padding: '40px' }}>Loading...</div>
         ) : (
           <>
-            {/* Section 1 — Featured Timelines */}
-            {sectionHead('Featured Timelines', '/browse')}
-            <div className="tlw-grid-8" style={{ gridTemplateRows: 'repeat(2, 1fr)', marginBottom: '8px' }}>
-              {featured.map((t: any) => (
+            {/* Section 1 — Recently Added */}
+            {sectionHead('Recently Added', '/browse')}
+            <div className="tlw-grid-4">
+              {recentlyAdded.map((t: any) => (
                 <TimelineCard key={t.id} t={t} posCount={getPos(t.id)} negCount={getNeg(t.id)} />
               ))}
             </div>
 
             {divider}
 
-            {/* Section 2 — Recently Added */}
-            {sectionHead('Recently Added', '/browse')}
-            <div className="tlw-grid-4">
-              {recentlyAdded.map((t: any) => (
+            {/* Section 2 — Featured Timelines */}
+            {sectionHead('Featured Timelines', '/browse')}
+            <div className="tlw-grid-8" style={{ gridTemplateRows: 'repeat(2, 1fr)', marginBottom: '8px' }}>
+              {featured.map((t: any) => (
                 <TimelineCard key={t.id} t={t} posCount={getPos(t.id)} negCount={getNeg(t.id)} />
               ))}
             </div>
@@ -188,7 +188,7 @@ export default function Home() {
               <>
                 {divider}
                 {sectionHead("Admin's Pick", '/browse')}
-                <div style={grid4}>
+                <div className="tlw-grid-4">
                   {adminsPick.map((t: any) => (
                     <TimelineCard key={t.id} t={t} posCount={getPos(t.id)} negCount={getNeg(t.id)} />
                   ))}
